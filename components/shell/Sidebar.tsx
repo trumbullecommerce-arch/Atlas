@@ -76,7 +76,7 @@ function NavItem({
         textAlign: "left",
         fontSize: 13,
         fontWeight: 600,
-        color: active ? "#fff" : "var(--muted)",
+        color: active ? "var(--text)" : "var(--muted)",
         background: active
           ? "linear-gradient(135deg, rgba(84,141,255,0.22), rgba(128,131,255,0.12))"
           : "transparent",

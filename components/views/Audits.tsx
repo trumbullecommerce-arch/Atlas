@@ -246,7 +246,7 @@ export function Audits({ marketplaceFilter }: { marketplaceFilter: Marketplace |
                 cursor: "pointer",
                 fontSize: 12,
                 fontWeight: 600,
-                color: on ? "#fff" : "var(--muted)",
+                color: on ? "var(--text)" : "var(--muted)",
                 background: on ? `color-mix(in srgb, ${color} 22%, transparent)` : "var(--bg-2)",
                 border: `1px solid ${on ? `color-mix(in srgb, ${color} 45%, transparent)` : "var(--border)"}`,
               }}

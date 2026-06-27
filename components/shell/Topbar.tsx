@@ -153,7 +153,7 @@ export function Topbar({
                   cursor: "pointer",
                   fontSize: 12,
                   fontWeight: 600,
-                  color: on ? "#fff" : "var(--muted)",
+                  color: on ? "var(--text)" : "var(--muted)",
                   background: on ? "color-mix(in srgb, var(--primary-bright) 24%, transparent)" : "transparent",
                   boxShadow: on ? "inset 0 0 0 1px var(--border-strong)" : "none",
                   transition: "all var(--dur)",
