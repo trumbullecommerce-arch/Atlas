@@ -18,7 +18,20 @@ import {
   TASKS,
   TODAY,
 } from "./seed";
-import type { AuditItem, AuditItemStatus, Task } from "./types";
+import type { AuditItem, AuditItemStatus, Marketplace, Priority, Task } from "./types";
+
+/** Shape accepted by addTask — the minimal fields the creation form collects. */
+export interface NewTaskInput {
+  title: string;
+  description: string;
+  projectId: string;
+  statusKey: string;
+  priority: Priority;
+  ownerId: string;
+  dueDate: string | null;
+  marketplace: Marketplace | null;
+  sku: string | null;
+}
 
 function uid(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
@@ -31,6 +44,7 @@ function nowIso(): string {
 interface StoreValue {
   tasks: Task[];
   auditItems: AuditItem[];
+  addTask: (input: NewTaskInput) => string;
   moveTask: (taskId: string, statusKey: string) => void;
   reorderInColumn: (taskId: string, statusKey: string, beforeId: string | null) => void;
   toggleChecklist: (taskId: string, itemId: string) => void;
@@ -47,6 +61,40 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [auditItems, setAuditItems] = useState<AuditItem[]>(() =>
     AUDIT_ITEMS.map((a) => ({ ...a })),
   );
+
+  const addTask = useCallback((input: NewTaskInput): string => {
+    const id = uid("t");
+    const created = nowIso();
+    const newTask: Task = {
+      id,
+      projectId: input.projectId,
+      statusKey: input.statusKey,
+      title: input.title.trim(),
+      description: input.description.trim(),
+      priority: input.priority,
+      position: 0,
+      dueDate: input.dueDate,
+      marketplace: input.marketplace,
+      sku: input.sku && input.sku.trim() ? input.sku.trim() : null,
+      ownerId: input.ownerId,
+      assigneeIds: [input.ownerId],
+      labels: [],
+      isBlocked: false,
+      blockedReason: null,
+      blockedSince: null,
+      checklist: [],
+      subtasks: [],
+      comments: [],
+      activity: [
+        { id: uid("ac"), kind: "created" as const, actorId: input.ownerId, text: "created this task", createdAt: created },
+      ],
+      estimateMinutes: null,
+      createdAt: created,
+    };
+    // Prepend so the new task appears at the top of its column / group.
+    setTasks((prev) => [newTask, ...prev]);
+    return id;
+  }, []);
 
   const moveTask = useCallback((taskId: string, statusKey: string) => {
     setTasks((prev) =>
@@ -184,6 +232,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       tasks,
       auditItems,
+      addTask,
       moveTask,
       reorderInColumn,
       toggleChecklist,
@@ -192,7 +241,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setBlocked,
       setAuditStatus,
     }),
-    [tasks, auditItems, moveTask, reorderInColumn, toggleChecklist, toggleSubtask, addComment, setBlocked, setAuditStatus],
+    [tasks, auditItems, addTask, moveTask, reorderInColumn, toggleChecklist, toggleSubtask, addComment, setBlocked, setAuditStatus],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

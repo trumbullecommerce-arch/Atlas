@@ -18,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Atlas — Trumbull Command Center",
   description:
-    "Atlas is Trumbull's multi-marketplace project command center for Amazon, Walmart and Wayfair.",
+    "Atlas is Trumbull's multi-marketplace project command center.",
 };
 
 export const viewport: Viewport = {

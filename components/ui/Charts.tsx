@@ -1,7 +1,7 @@
 // Inline-SVG charts — gradient area line, donut, and stacked bar.
 // No charting dependency; 2px strokes + gradient fills + glow per the design.
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 
 // ── Area + line chart (e.g. 14-day throughput) ──────────────────────────────
 export function AreaLineChart({
@@ -105,17 +105,28 @@ export function Donut({
   thickness = 16,
   centerLabel,
   centerSub,
+  onSegmentClick,
+  activeIndex,
+  onSegmentHover,
 }: {
   segments: { label: string; value: number; color: string }[];
   size?: number;
   thickness?: number;
   centerLabel?: string;
   centerSub?: string;
+  /** When provided, segments become clickable (cursor + emphasis on hover). */
+  onSegmentClick?: (index: number) => void;
+  /** Externally controlled emphasis (e.g. synced with a legend hover). */
+  activeIndex?: number | null;
+  onSegmentHover?: (index: number | null) => void;
 }) {
   const total = segments.reduce((a, s) => a + s.value, 0) || 1;
   const r = (size - thickness) / 2;
   const c = 2 * Math.PI * r;
   let offset = 0;
+  const [innerHover, setInnerHover] = useState<number | null>(null);
+  const hovered = activeIndex !== undefined ? activeIndex : innerHover;
+  const interactive = !!onSegmentClick;
 
   return (
     <div style={{ position: "relative", width: size, height: size }}>
@@ -125,6 +136,8 @@ export function Donut({
           const frac = s.value / total;
           const len = frac * c;
           const dash = `${len} ${c - len}`;
+          const isHot = hovered === i;
+          const dim = hovered !== null && hovered !== undefined && !isHot;
           const el = (
             <circle
               key={i}
@@ -133,11 +146,19 @@ export function Donut({
               r={r}
               fill="none"
               stroke={s.color}
-              strokeWidth={thickness}
+              strokeWidth={isHot ? thickness + 3 : thickness}
               strokeDasharray={dash}
               strokeDashoffset={-offset}
               strokeLinecap="butt"
-              style={{ filter: `drop-shadow(0 0 5px color-mix(in srgb, ${s.color} 50%, transparent))` }}
+              onClick={interactive ? () => onSegmentClick?.(i) : undefined}
+              onMouseEnter={interactive ? () => { setInnerHover(i); onSegmentHover?.(i); } : undefined}
+              onMouseLeave={interactive ? () => { setInnerHover(null); onSegmentHover?.(null); } : undefined}
+              style={{
+                filter: `drop-shadow(0 0 ${isHot ? 9 : 5}px color-mix(in srgb, ${s.color} ${isHot ? 70 : 50}%, transparent))`,
+                opacity: dim ? 0.45 : 1,
+                cursor: interactive ? "pointer" : "default",
+                transition: "stroke-width 0.18s var(--ease), opacity 0.18s var(--ease), filter 0.18s var(--ease)",
+              }}
             />
           );
           offset += len;

@@ -170,7 +170,7 @@ export function Board({
   const lanes = useMemo(() => {
     if (groupBy === "none") return null;
     if (groupBy === "marketplace") {
-      const mps: (Marketplace | "none")[] = ["Amazon", "Walmart", "Wayfair", "none"];
+      const mps: (Marketplace | "none")[] = ["Amazon", "Walmart", "Wayfair", "Lowe's", "Home Depot", "Ferguson Home", "bath1.com", "none"];
       return mps
         .map((mp) => ({
           key: String(mp),

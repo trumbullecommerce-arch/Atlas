@@ -9,9 +9,11 @@
 import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { AUDIT_BUCKETS, AUDIT_TOTALS, person } from "@/lib/seed";
-import type { AuditItemStatus, Marketplace } from "@/lib/types";
+import type { AuditItem, AuditItemStatus, Marketplace } from "@/lib/types";
+import { MARKETPLACE_META } from "@/lib/format";
 import { Icon } from "@/components/ui/Icon";
 import { Avatar, AUDIT_STATUS_META, AuditStatusPill, Chip } from "@/components/ui/Primitives";
+import { AuditItemDetail } from "@/components/audit-detail/AuditItemDetail";
 
 const STATUS_ORDER: AuditItemStatus[] = ["verified", "in_progress", "pending", "flagged", "na"];
 
@@ -141,15 +143,19 @@ function StatusSelect({ value, onChange }: { value: AuditItemStatus; onChange: (
   );
 }
 
-const MARKETPLACE_COLOR: Record<Marketplace, string> = {
-  Amazon: "#f59e0b",
-  Walmart: "#548dff",
-  Wayfair: "#8083ff",
-};
+// Channel → color, sourced from the shared meta so all 7 channels resolve.
+const MARKETPLACE_COLOR = (m: Marketplace): string => MARKETPLACE_META[m].color;
 
 export function Audits({ marketplaceFilter }: { marketplaceFilter: Marketplace | "all" }) {
   const { auditItems, setAuditStatus } = useStore();
   const [statusFilter, setStatusFilter] = useState<AuditItemStatus | "all">("all");
+  // Selected ledger row (opens the right-side detail drawer). Tracked by id so
+  // the drawer always reflects the live item (e.g. after an inline status edit).
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedItem: AuditItem | null = useMemo(
+    () => auditItems.find((a) => a.id === selectedId) ?? null,
+    [auditItems, selectedId],
+  );
 
   const rows = useMemo(() => {
     return auditItems.filter((a) => {
@@ -192,7 +198,7 @@ export function Audits({ marketplaceFilter }: { marketplaceFilter: Marketplace |
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }} className="atlas-audit-buckets">
           {AUDIT_BUCKETS.map((b) => {
             const pct = b.total ? b.verified / b.total : 0;
-            const color = MARKETPLACE_COLOR[b.marketplace];
+            const color = MARKETPLACE_COLOR(b.marketplace);
             return (
               <div key={b.marketplace} style={{ padding: "13px 14px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 9 }}>
@@ -297,10 +303,23 @@ export function Audits({ marketplaceFilter }: { marketplaceFilter: Marketplace |
         <div className="stagger">
           {rows.map((a) => {
             const owner = person(a.ownerId);
+            const flaggedBg = a.status === "flagged" ? "color-mix(in srgb, var(--error) 5%, transparent)" : "transparent";
             return (
               <div
                 key={a.id}
-                className="atlas-audit-row"
+                className="atlas-audit-row is-clickable"
+                role="button"
+                tabIndex={0}
+                aria-label={`Open audit item ${a.externalRef}`}
+                onClick={() => setSelectedId(a.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedId(a.id);
+                  }
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.028)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = flaggedBg)}
                 style={{
                   display: "grid",
                   gridTemplateColumns: "150px minmax(0,1fr) 110px 150px 150px",
@@ -308,7 +327,9 @@ export function Audits({ marketplaceFilter }: { marketplaceFilter: Marketplace |
                   alignItems: "center",
                   padding: "11px 18px",
                   borderTop: "1px solid var(--border-soft)",
-                  background: a.status === "flagged" ? "color-mix(in srgb, var(--error) 5%, transparent)" : "transparent",
+                  cursor: "pointer",
+                  background: flaggedBg,
+                  transition: "background var(--dur)",
                 }}
               >
                 <span className="mono" style={{ fontSize: 11.5, color: "var(--text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -325,7 +346,7 @@ export function Audits({ marketplaceFilter }: { marketplaceFilter: Marketplace |
                   )}
                 </div>
                 <span>
-                  <Chip color={MARKETPLACE_COLOR[a.marketplace]}>{a.marketplace}</Chip>
+                  <Chip color={MARKETPLACE_COLOR(a.marketplace)}>{a.marketplace}</Chip>
                 </span>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 7, minWidth: 0 }}>
                   {owner ? (
@@ -350,6 +371,9 @@ export function Audits({ marketplaceFilter }: { marketplaceFilter: Marketplace |
         <Icon name="check-circle" size={12} />
         Sample reflects the table; the meter above tracks the full {AUDIT_TOTALS.total}-listing universe.
       </div>
+
+      {/* Right-side audit-item detail drawer */}
+      <AuditItemDetail item={selectedItem} onClose={() => setSelectedId(null)} />
     </div>
   );
 }

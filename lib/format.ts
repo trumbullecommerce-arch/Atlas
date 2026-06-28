@@ -78,4 +78,8 @@ export const MARKETPLACE_META: Record<string, { color: string; abbr: string }> =
   Amazon: { color: "#f59e0b", abbr: "AMZ" },
   Walmart: { color: "#548dff", abbr: "WMT" },
   Wayfair: { color: "#8083ff", abbr: "WAY" },
+  "Lowe's": { color: "#2bb3a3", abbr: "LOW" },
+  "Home Depot": { color: "#f0793b", abbr: "HD" },
+  "Ferguson Home": { color: "#d4537e", abbr: "FERG" },
+  "bath1.com": { color: "#22b8cf", abbr: "BTH1" },
 };

@@ -2,7 +2,14 @@
 // Intentionally aligned with supabase/migrations/0001_init.sql so the seed
 // layer can later be swapped for live Supabase queries with minimal churn.
 
-export type Marketplace = "Amazon" | "Walmart" | "Wayfair";
+export type Marketplace =
+  | "Amazon"
+  | "Walmart"
+  | "Wayfair"
+  | "Lowe's"
+  | "Home Depot"
+  | "Ferguson Home"
+  | "bath1.com";
 
 export type ProjectKind = "standard" | "audit";
 
@@ -153,3 +160,6 @@ export type ViewKey =
   | "list"
   | "timeline"
   | "audits";
+
+/** Assignment-scope filter for the board / list / timeline (see Topbar). */
+export type ScopeFilter = "everyone" | "mine" | "involving";

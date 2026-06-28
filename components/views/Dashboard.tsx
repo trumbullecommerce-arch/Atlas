@@ -5,7 +5,7 @@
 // state from the store and blends in the seed analytics (throughput, audit
 // totals, activity feed).
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useStore } from "@/lib/store";
 import {
   PROJECTS,
@@ -112,14 +112,41 @@ function StatCard({
   );
 }
 
+// Resolve a cross-project activity-feed row back to the task it describes, so
+// the row can deep-link into the task. The feed text embeds the task title in
+// curly quotes (e.g. …commented on "Build 22 listings…"); we match that against
+// the live tasks within the same project, falling back to a loose contains.
+function resolveFeedTaskId(
+  text: string,
+  projectId: string,
+  tasks: Task[],
+): string | null {
+  const quoted = text.match(/[“"]([^”"]+)[”"]/);
+  const inProject = tasks.filter((t) => t.projectId === projectId);
+  if (quoted) {
+    const phrase = quoted[1].trim().toLowerCase();
+    const exact = inProject.find((t) => t.title.toLowerCase() === phrase);
+    if (exact) return exact.id;
+    const partial = inProject.find(
+      (t) => t.title.toLowerCase().startsWith(phrase) || t.title.toLowerCase().includes(phrase),
+    );
+    if (partial) return partial.id;
+  }
+  return inProject[0]?.id ?? null;
+}
+
 export function Dashboard({
   onOpen,
   setView,
+  onFocusStatus,
 }: {
   onOpen: (id: string) => void;
   setView: (v: ViewKey) => void;
+  onFocusStatus: (statusKey: string) => void;
 }) {
   const { tasks } = useStore();
+  // Shared hover index so the donut + its legend highlight together.
+  const [distHover, setDistHover] = useState<number | null>(null);
 
   const stats = useMemo(() => {
     const open = tasks.filter((t) => t.statusKey !== "done");
@@ -266,15 +293,42 @@ export function Dashboard({
               thickness={15}
               centerLabel={String(tasks.length)}
               centerSub="tasks"
+              activeIndex={distHover}
+              onSegmentHover={setDistHover}
+              onSegmentClick={(i) => onFocusStatus(distribution[i].key)}
             />
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 9 }}>
-              {distribution.map((s) => (
-                <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 9, height: 9, borderRadius: 3, background: s.color, flex: "0 0 auto", boxShadow: `0 0 6px ${s.color}` }} />
-                  <span style={{ fontSize: 12, color: "var(--text-soft)", flex: 1 }}>{s.label}</span>
-                  <span className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>{s.value}</span>
-                </div>
-              ))}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 3 }}>
+              {distribution.map((s, i) => {
+                const hot = distHover === i;
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => onFocusStatus(s.key)}
+                    onMouseEnter={() => setDistHover(i)}
+                    onMouseLeave={() => setDistHover(null)}
+                    title={`View ${s.label} in the list`}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      width: "100%",
+                      padding: "5px 7px",
+                      borderRadius: 8,
+                      border: "none",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      background: hot ? "color-mix(in srgb, var(--primary-bright) 12%, transparent)" : "transparent",
+                      transition: "background var(--dur)",
+                    }}
+                  >
+                    <span style={{ width: 9, height: 9, borderRadius: 3, background: s.color, flex: "0 0 auto", boxShadow: `0 0 6px ${s.color}` }} />
+                    <span style={{ fontSize: 12, color: hot ? "var(--text)" : "var(--text-soft)", flex: 1 }}>{s.label}</span>
+                    <span className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>{s.value}</span>
+                    <Icon name="arrow-up-right" size={12} style={{ color: hot ? "var(--primary)" : "transparent", flex: "0 0 auto" }} />
+                  </button>
+                );
+              })}
             </div>
           </div>
         </Panel>
@@ -313,20 +367,44 @@ export function Dashboard({
               Recent activity
             </SectionTitle>
           </div>
-          <div style={{ padding: "0 18px 16px", display: "flex", flexDirection: "column" }}>
+          <div style={{ padding: "0 10px 12px", display: "flex", flexDirection: "column" }}>
             {RECENT_ACTIVITY.map((a, i) => {
               const actor = person(a.actorId);
               const proj = project(a.projectId);
               const isLast = i === RECENT_ACTIVITY.length - 1;
+              const taskId = resolveFeedTaskId(a.text, a.projectId, tasks);
               return (
-                <div key={a.id} style={{ display: "flex", gap: 11, position: "relative", paddingBottom: isLast ? 0 : 14 }}>
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => taskId && onOpen(taskId)}
+                  disabled={!taskId}
+                  className="atlas-activity-row"
+                  style={{
+                    display: "flex",
+                    gap: 11,
+                    position: "relative",
+                    width: "100%",
+                    textAlign: "left",
+                    border: "none",
+                    background: "transparent",
+                    borderRadius: 10,
+                    padding: "8px 8px",
+                    cursor: taskId ? "pointer" : "default",
+                    transition: "background var(--dur)",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (taskId) e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                  }}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
                   {!isLast && (
-                    <span style={{ position: "absolute", left: 13, top: 30, bottom: 0, width: 1.5, background: "var(--border)" }} />
+                    <span style={{ position: "absolute", left: 21, top: 38, bottom: -2, width: 1.5, background: "var(--border)" }} />
                   )}
                   <span style={{ position: "relative", zIndex: 1 }}>
                     <Avatar personId={a.actorId} size={28} />
                   </span>
-                  <div style={{ flex: 1, paddingTop: 1 }}>
+                  <div style={{ flex: 1, paddingTop: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, color: "var(--text-soft)", lineHeight: 1.4 }}>
                       <span style={{ fontWeight: 600, color: "var(--text)" }}>{actor?.fullName.split(" ")[0]}</span> {a.text}
                     </div>
@@ -336,7 +414,15 @@ export function Dashboard({
                       <span style={{ fontSize: 10.5, color: "var(--muted-2)" }}>· {relTime(a.createdAt)}</span>
                     </div>
                   </div>
-                </div>
+                  {taskId && (
+                    <Icon
+                      name="arrow-up-right"
+                      size={13}
+                      className="atlas-activity-arrow"
+                      style={{ color: "var(--muted-2)", flex: "0 0 auto", alignSelf: "center" }}
+                    />
+                  )}
+                </button>
               );
             })}
           </div>

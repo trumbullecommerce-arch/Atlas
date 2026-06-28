@@ -116,11 +116,13 @@ export function SidebarContent({
   setView,
   projectFilter,
   setProjectFilter,
+  onOpenSettings,
 }: {
   view: ViewKey;
   setView: (v: ViewKey) => void;
   projectFilter: string | null;
   setProjectFilter: (id: string | null) => void;
+  onOpenSettings: () => void;
 }) {
   const { tasks } = useStore();
   const me = person(ME);
@@ -253,6 +255,7 @@ export function SidebarContent({
           <button
             type="button"
             aria-label="Settings"
+            onClick={onOpenSettings}
             style={{
               width: 30,
               height: 30,
@@ -263,6 +266,15 @@ export function SidebarContent({
               background: "transparent",
               color: "var(--muted)",
               cursor: "pointer",
+              transition: "color var(--dur), border-color var(--dur)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "var(--text)";
+              e.currentTarget.style.borderColor = "var(--border-strong)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "var(--muted)";
+              e.currentTarget.style.borderColor = "var(--border)";
             }}
           >
             <Icon name="settings" size={15} />
@@ -281,6 +293,7 @@ export function Sidebar(props: {
   setProjectFilter: (id: string | null) => void;
   mobileOpen: boolean;
   setMobileOpen: (b: boolean) => void;
+  onOpenSettings: () => void;
 }) {
   return (
     <>

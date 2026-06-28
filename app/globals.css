@@ -334,3 +334,128 @@ html[data-mode="light"] .glass { border-top-color: rgba(255, 255, 255, 0.65); bo
 html[data-mode="light"] .panel { box-shadow: var(--shadow-1), inset 0 1px 0 rgba(255, 255, 255, 0.6); }
 html[data-mode="light"] ::-webkit-scrollbar-thumb { background: rgba(15, 23, 42, 0.22); background-clip: content-box; }
 html[data-mode="light"] .atlas-list-row:hover { background: rgba(15, 23, 42, 0.035) !important; }
+html[data-mode="light"] .atlas-activity-row:hover:not(:disabled) { background: rgba(15, 23, 42, 0.04) !important; }
+html[data-mode="light"] .atlas-audit-row.is-clickable:hover { background: rgba(15, 23, 42, 0.04) !important; }
+
+/* Recent-activity rows: reveal the deep-link arrow on hover/focus. */
+.atlas-activity-row .atlas-activity-arrow { opacity: 0; transition: opacity var(--dur), color var(--dur); }
+.atlas-activity-row:hover .atlas-activity-arrow,
+.atlas-activity-row:focus-visible .atlas-activity-arrow { opacity: 1; color: var(--primary); }
+
+/* Collapsible List group header: subtle hover affordance (both themes). */
+.atlas-list-grouphdr:hover { background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent); }
+html[data-mode="light"] .atlas-list-grouphdr:hover { background: rgba(15, 23, 42, 0.04); }
+
+/* Timeline week-column headers are clickable (zoom into that week). */
+.atlas-tl-colhdr:hover { background: color-mix(in srgb, var(--primary-bright) 20%, transparent) !important; }
+.atlas-tl-colhdr:hover .mono { color: var(--primary); }
+
+/* ============================================================================
+   Sidebar display preference + responsive layout.
+
+   The persistent desktop rail (.atlas-sidebar-desktop) vs the hamburger-driven
+   drawer (.atlas-mobile-only) is chosen per-user on desktop via the
+   [data-sidebar] attribute set on the shell root (see AppShell / lib/prefs).
+   On small screens a fixed rail can't fit, so we always fall back to the
+   collapsible drawer regardless of the preference.
+   ========================================================================== */
+
+/* Hamburger + mobile drawer: hidden by default (desktop, fixed mode).
+   !important is used throughout because the hamburger sets an inline
+   `display` value, which would otherwise win over these class rules. */
+.atlas-mobile-only {
+  display: none !important;
+}
+
+/* Desktop, "fixed" preference (default): show the rail, hide the hamburger. */
+[data-sidebar="fixed"] .atlas-sidebar-desktop {
+  display: block !important;
+}
+[data-sidebar="fixed"] .atlas-mobile-only {
+  display: none !important;
+}
+
+/* Desktop, "collapsible" preference: hide the rail, reveal the hamburger so the
+   content goes full-width and nav lives behind the slide-out drawer. */
+[data-sidebar="collapsible"] .atlas-sidebar-desktop {
+  display: none !important;
+}
+[data-sidebar="collapsible"] .atlas-mobile-only {
+  display: flex !important;
+}
+
+/* ── Small screens: always collapsible, preference is ignored ─────────────── */
+@media (max-width: 860px) {
+  /* Persistent rail never shows on mobile, whatever the preference. */
+  [data-sidebar] .atlas-sidebar-desktop,
+  .atlas-sidebar-desktop {
+    display: none !important;
+  }
+  /* Hamburger + drawer always available on mobile. */
+  [data-sidebar] .atlas-mobile-only,
+  .atlas-mobile-only {
+    display: flex !important;
+  }
+
+  /* Trim the topbar so it doesn't overflow on narrow viewports. */
+  .atlas-topbar-sub {
+    display: none;
+  }
+  /* Timeline subtitle + scope-filter label collapse to save header room. */
+  .atlas-tl-sub {
+    display: none;
+  }
+  .atlas-scope-label {
+    display: none;
+  }
+  .atlas-search input {
+    width: 150px !important;
+  }
+  .atlas-team {
+    display: none !important;
+  }
+  .atlas-newtask-label {
+    display: none;
+  }
+
+  /* Dashboard / audits grids collapse to a single column. */
+  .atlas-kpi-grid,
+  .atlas-dash-charts,
+  .atlas-dash-lower,
+  .atlas-audit-hero,
+  .atlas-audit-buckets {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* List rows shed the lower-priority columns on small screens, keeping
+     priority + title + due. */
+  .atlas-list-row {
+    grid-template-columns: 22px minmax(0, 1fr) auto !important;
+  }
+  .atlas-list-mp,
+  .atlas-list-checks,
+  .atlas-list-ownerwrap,
+  .atlas-list-sku {
+    display: none !important;
+  }
+
+  /* Audit ledger: drop reference + owner columns, keep listing + status. */
+  .atlas-audit-thead,
+  .atlas-audit-row {
+    grid-template-columns: minmax(0, 1fr) 130px !important;
+  }
+  .atlas-audit-thead > :nth-child(1),
+  .atlas-audit-row > :nth-child(1),
+  .atlas-audit-thead > :nth-child(3),
+  .atlas-audit-row > :nth-child(3),
+  .atlas-audit-thead > :nth-child(4),
+  .atlas-audit-row > :nth-child(4) {
+    display: none !important;
+  }
+}
+
+@media (max-width: 540px) {
+  .atlas-search {
+    display: none;
+  }
+}

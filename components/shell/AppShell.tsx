@@ -9,15 +9,18 @@
 // Plus the ambient `.fx` background and the right-side TaskDetail slide-over.
 // `body { overflow:hidden }` (globals.css) means this owns its own scrolling.
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { StoreProvider, useStore } from "@/lib/store";
-import { PROJECTS, project } from "@/lib/seed";
-import type { Marketplace, Task, ViewKey } from "@/lib/types";
+import { PrefsProvider, usePrefs } from "@/lib/prefs";
+import { ME, PROJECTS, project } from "@/lib/seed";
+import type { Marketplace, ScopeFilter, Task, ViewKey } from "@/lib/types";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { Topbar } from "@/components/shell/Topbar";
 import { Board } from "@/components/board/Board";
 import { TaskDetail } from "@/components/task-detail/TaskDetail";
+import { NewTaskDrawer } from "@/components/task-create/NewTaskDrawer";
+import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { Dashboard } from "@/components/views/Dashboard";
 import { List } from "@/components/views/List";
 import { Audits } from "@/components/views/Audits";
@@ -50,25 +53,51 @@ function matchesSearch(t: Task, q: string): boolean {
 
 function Shell() {
   const { tasks } = useStore();
+  const { prefs } = usePrefs();
 
   const [view, setView] = useState<ViewKey>("dashboard");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [marketplaceFilter, setMarketplaceFilter] = useState<Marketplace | "all">("all");
+  const [scopeFilter, setScopeFilter] = useState<ScopeFilter>("everyone");
   const [search, setSearch] = useState("");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  // When the dashboard routes into the List focused on a status, this holds the
+  // status key so the List can expand + scroll that group into view (see List C).
+  const [listFocus, setListFocus] = useState<string | null>(null);
 
-  // Tasks scoped by the active project + marketplace + search filters. The
-  // dashboard and audits views intentionally ignore these (they're org-wide /
-  // audit-specific), but the board, list and timeline all share this set.
+  // Tasks scoped by the active project + marketplace + scope + search filters.
+  // The dashboard and audits views intentionally ignore these (they're org-wide
+  // / audit-specific), but the board, list and timeline all share this set.
+  const involvingProjects = useMemo(() => {
+    // Projects with at least one task assigned to ME (owner or assignee).
+    const ids = new Set<string>();
+    for (const t of tasks) {
+      if (t.ownerId === ME || t.assigneeIds.includes(ME)) ids.add(t.projectId);
+    }
+    return ids;
+  }, [tasks]);
+
+  const matchesScope = useCallback(
+    (t: Task): boolean => {
+      if (scopeFilter === "mine") return t.ownerId === ME || t.assigneeIds.includes(ME);
+      if (scopeFilter === "involving") return involvingProjects.has(t.projectId);
+      return true;
+    },
+    [scopeFilter, involvingProjects],
+  );
+
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
       if (projectFilter && t.projectId !== projectFilter) return false;
       if (marketplaceFilter !== "all" && t.marketplace !== marketplaceFilter) return false;
+      if (!matchesScope(t)) return false;
       if (!matchesSearch(t, search)) return false;
       return true;
     });
-  }, [tasks, projectFilter, marketplaceFilter, search]);
+  }, [tasks, projectFilter, marketplaceFilter, matchesScope, search]);
 
   const activeProjectName =
     projectFilter ? PROJECTS.find((p) => p.id === projectFilter)?.name ?? null : null;
@@ -78,7 +107,10 @@ function Shell() {
   }
 
   return (
-    <div style={{ position: "relative", height: "100%", width: "100%", overflow: "hidden" }}>
+    // data-sidebar drives whether the persistent rail or the hamburger shows on
+    // desktop (see the responsive rules in globals.css). Small screens always
+    // fall back to the collapsible drawer regardless of this value.
+    <div data-sidebar={prefs.sidebarMode} style={{ position: "relative", height: "100%", width: "100%", overflow: "hidden" }}>
       <Fx />
 
       <div style={{ position: "relative", zIndex: 1, display: "flex", height: "100%", width: "100%" }}>
@@ -92,6 +124,10 @@ function Shell() {
           setProjectFilter={setProjectFilter}
           mobileOpen={mobileNavOpen}
           setMobileOpen={setMobileNavOpen}
+          onOpenSettings={() => {
+            setSettingsOpen(true);
+            setMobileNavOpen(false);
+          }}
         />
 
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%" }}>
@@ -101,7 +137,9 @@ function Shell() {
             setSearch={setSearch}
             marketplaceFilter={marketplaceFilter}
             setMarketplaceFilter={setMarketplaceFilter}
-            onNewTask={() => setView("board")}
+            scopeFilter={scopeFilter}
+            setScopeFilter={setScopeFilter}
+            onNewTask={() => setNewTaskOpen(true)}
             onOpenMobileNav={() => setMobileNavOpen(true)}
             projectName={activeProjectName}
           />
@@ -127,9 +165,25 @@ function Shell() {
                 transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
                 style={{ height: "100%" }}
               >
-                {view === "dashboard" && <Dashboard onOpen={openTask} setView={setView} />}
+                {view === "dashboard" && (
+                  <Dashboard
+                    onOpen={openTask}
+                    setView={setView}
+                    onFocusStatus={(statusKey) => {
+                      setListFocus(statusKey);
+                      setView("list");
+                    }}
+                  />
+                )}
                 {view === "board" && <Board tasks={filteredTasks} onOpen={openTask} />}
-                {view === "list" && <List tasks={filteredTasks} onOpen={openTask} />}
+                {view === "list" && (
+                  <List
+                    tasks={filteredTasks}
+                    onOpen={openTask}
+                    listFocus={listFocus}
+                    clearFocus={() => setListFocus(null)}
+                  />
+                )}
                 {view === "timeline" && <Timeline tasks={filteredTasks} onOpen={openTask} />}
                 {view === "audits" && <Audits marketplaceFilter={marketplaceFilter} />}
               </motion.div>
@@ -139,14 +193,28 @@ function Shell() {
       </div>
 
       <TaskDetail taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
+
+      <NewTaskDrawer
+        open={newTaskOpen}
+        onClose={() => setNewTaskOpen(false)}
+        onCreated={(id) => {
+          setNewTaskOpen(false);
+          // Surface the freshly created task so the user immediately sees it.
+          setSelectedTaskId(id);
+        }}
+      />
+
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }
 
 export function AppShell() {
   return (
-    <StoreProvider>
-      <Shell />
-    </StoreProvider>
+    <PrefsProvider>
+      <StoreProvider>
+        <Shell />
+      </StoreProvider>
+    </PrefsProvider>
   );
 }

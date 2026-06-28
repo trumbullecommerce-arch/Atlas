@@ -2,20 +2,287 @@
 
 import { useState } from "react";
 import { PEOPLE } from "@/lib/seed";
-import type { Marketplace, ViewKey } from "@/lib/types";
-import { Icon } from "@/components/ui/Icon";
+import { MARKETPLACE_META } from "@/lib/format";
+import type { Marketplace, ScopeFilter, ViewKey } from "@/lib/types";
+import { Icon, type IconName } from "@/components/ui/Icon";
 import { Avatar, IconButton } from "@/components/ui/Primitives";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const VIEW_TITLES: Record<ViewKey, { title: string; sub: string }> = {
-  dashboard: { title: "Dashboard", sub: "Cross-project health across Amazon, Walmart & Wayfair" },
+  dashboard: { title: "Dashboard", sub: "Cross-project health across all your channels" },
   board: { title: "Board", sub: "Drag work across the pipeline" },
   list: { title: "List", sub: "Every task, grouped and sortable" },
   timeline: { title: "Timeline", sub: "Work plotted against target dates" },
   audits: { title: "Audits", sub: "Coverage-verified, not a checkbox" },
 };
 
-const MARKETPLACES: Marketplace[] = ["Amazon", "Walmart", "Wayfair"];
+// Full channel list (order matters for the dropdown). Mirrors the Marketplace
+// union in lib/types.ts and the swimlanes in Board.tsx.
+const MARKETPLACES: Marketplace[] = [
+  "Amazon",
+  "Walmart",
+  "Wayfair",
+  "Lowe's",
+  "Home Depot",
+  "Ferguson Home",
+  "bath1.com",
+];
+
+// Small color dot used in both the trigger and the menu rows.
+function ChannelDot({ color }: { color: string }) {
+  return (
+    <span
+      style={{
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        flex: "0 0 auto",
+        background: color,
+        boxShadow: `0 0 6px ${color}`,
+      }}
+    />
+  );
+}
+
+// On-theme dropdown that replaces the old segmented marketplace filter. Scales
+// cleanly to all 7 channels; renders a glass popover like the other menus.
+function MarketplaceFilter({
+  value,
+  onChange,
+}: {
+  value: Marketplace | "all";
+  onChange: (m: Marketplace | "all") => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const isAll = value === "all";
+  const selColor = isAll ? "var(--muted)" : MARKETPLACE_META[value].color;
+
+  return (
+    <div className="atlas-mp-filter" style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          height: 38,
+          padding: "0 10px 0 12px",
+          borderRadius: 10,
+          border: `1px solid ${open ? "var(--border-strong)" : "var(--border)"}`,
+          background: "var(--bg-2)",
+          color: "var(--text)",
+          fontSize: 12.5,
+          fontWeight: 600,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+          boxShadow: open ? "var(--glow)" : "none",
+          transition: "border-color var(--dur), box-shadow var(--dur)",
+        }}
+      >
+        <ChannelDot color={selColor} />
+        <span>{isAll ? "All channels" : value}</span>
+        <Icon
+          name="chevron-down"
+          size={14}
+          style={{ color: "var(--muted)", transform: open ? "rotate(180deg)" : "none", transition: "transform var(--dur)" }}
+        />
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+          <div
+            role="listbox"
+            className="glass"
+            style={{
+              position: "absolute",
+              right: 0,
+              top: 46,
+              zIndex: 50,
+              minWidth: 184,
+              borderRadius: 12,
+              padding: 5,
+              boxShadow: "var(--shadow-3)",
+            }}
+          >
+            {(["all", ...MARKETPLACES] as const).map((m) => {
+              const on = value === m;
+              const color = m === "all" ? "var(--muted)" : MARKETPLACE_META[m].color;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  role="option"
+                  aria-selected={on}
+                  onClick={() => {
+                    onChange(m);
+                    setOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 9,
+                    width: "100%",
+                    padding: "7px 9px",
+                    borderRadius: 8,
+                    border: "none",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    fontSize: 12.5,
+                    fontWeight: on ? 600 : 500,
+                    color: on ? "var(--text)" : "var(--text-soft)",
+                    background: on ? "rgba(255,255,255,0.05)" : "transparent",
+                    transition: "background var(--dur)",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = on ? "rgba(255,255,255,0.05)" : "transparent")}
+                >
+                  <ChannelDot color={color} />
+                  <span style={{ flex: 1 }}>{m === "all" ? "All channels" : m}</span>
+                  {on && <Icon name="check" size={14} style={{ color: "var(--secondary)" }} />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Assignment-scope options (order matters for the dropdown). Each carries the
+// icon + short trigger label used by the on-theme glass popover below.
+const SCOPE_OPTIONS: { key: ScopeFilter; label: string; trigger: string; icon: IconName; desc: string }[] = [
+  { key: "everyone", label: "Everyone", trigger: "Everyone", icon: "users", desc: "All tasks across the team" },
+  { key: "mine", label: "Assigned to me", trigger: "Assigned to me", icon: "user", desc: "I own or am an assignee" },
+  { key: "involving", label: "Involving me", trigger: "Involving me", icon: "grid", desc: "Any project I'm part of" },
+];
+
+// On-theme scope filter; renders a glass popover like the channel menu. Filters
+// the board / list / timeline by how the task relates to the current user.
+function ScopeFilterControl({
+  value,
+  onChange,
+}: {
+  value: ScopeFilter;
+  onChange: (s: ScopeFilter) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const current = SCOPE_OPTIONS.find((o) => o.key === value) ?? SCOPE_OPTIONS[0];
+  const accent = value === "everyone" ? "var(--muted)" : "var(--primary)";
+
+  return (
+    <div className="atlas-scope-filter" style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        title="Filter by assignment"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          height: 38,
+          padding: "0 10px 0 11px",
+          borderRadius: 10,
+          border: `1px solid ${open ? "var(--border-strong)" : "var(--border)"}`,
+          background: "var(--bg-2)",
+          color: "var(--text)",
+          fontSize: 12.5,
+          fontWeight: 600,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+          boxShadow: open ? "var(--glow)" : "none",
+          transition: "border-color var(--dur), box-shadow var(--dur)",
+        }}
+      >
+        <Icon name={current.icon} size={15} style={{ color: accent }} />
+        <span className="atlas-scope-label">{current.trigger}</span>
+        <Icon
+          name="chevron-down"
+          size={14}
+          style={{ color: "var(--muted)", transform: open ? "rotate(180deg)" : "none", transition: "transform var(--dur)" }}
+        />
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+          <div
+            role="listbox"
+            className="glass"
+            style={{
+              position: "absolute",
+              right: 0,
+              top: 46,
+              zIndex: 50,
+              minWidth: 224,
+              borderRadius: 12,
+              padding: 5,
+              boxShadow: "var(--shadow-3)",
+            }}
+          >
+            {SCOPE_OPTIONS.map((o) => {
+              const on = value === o.key;
+              return (
+                <button
+                  key={o.key}
+                  type="button"
+                  role="option"
+                  aria-selected={on}
+                  onClick={() => {
+                    onChange(o.key);
+                    setOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    width: "100%",
+                    padding: "8px 9px",
+                    borderRadius: 8,
+                    border: "none",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    background: on ? "rgba(255,255,255,0.05)" : "transparent",
+                    transition: "background var(--dur)",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = on ? "rgba(255,255,255,0.05)" : "transparent")}
+                >
+                  <span
+                    style={{
+                      width: 28,
+                      height: 28,
+                      flex: "0 0 auto",
+                      borderRadius: 8,
+                      display: "grid",
+                      placeItems: "center",
+                      color: on ? "var(--primary)" : "var(--muted)",
+                      background: on ? "color-mix(in srgb, var(--primary-bright) 14%, transparent)" : "var(--bg-2)",
+                      border: `1px solid ${on ? "color-mix(in srgb, var(--primary-bright) 32%, transparent)" : "var(--border)"}`,
+                    }}
+                  >
+                    <Icon name={o.icon} size={15} />
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 12.5, fontWeight: on ? 600 : 500, color: on ? "var(--text)" : "var(--text-soft)" }}>
+                      {o.label}
+                    </span>
+                    <span style={{ display: "block", fontSize: 10.5, color: "var(--muted-2)", marginTop: 1 }}>{o.desc}</span>
+                  </span>
+                  {on && <Icon name="check" size={14} style={{ color: "var(--secondary)", flex: "0 0 auto" }} />}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export function Topbar({
   view,
@@ -23,6 +290,8 @@ export function Topbar({
   setSearch,
   marketplaceFilter,
   setMarketplaceFilter,
+  scopeFilter,
+  setScopeFilter,
   onNewTask,
   onOpenMobileNav,
   projectName,
@@ -32,6 +301,8 @@ export function Topbar({
   setSearch: (s: string) => void;
   marketplaceFilter: Marketplace | "all";
   setMarketplaceFilter: (m: Marketplace | "all") => void;
+  scopeFilter: ScopeFilter;
+  setScopeFilter: (s: ScopeFilter) => void;
   onNewTask: () => void;
   onOpenMobileNav: () => void;
   projectName: string | null;
@@ -39,6 +310,8 @@ export function Topbar({
   const [notifOpen, setNotifOpen] = useState(false);
   const meta = VIEW_TITLES[view];
   const showMarketplaceFilter = view === "board" || view === "list" || view === "audits";
+  // Scope filter applies to the task-centric views that share AppShell's filter.
+  const showScopeFilter = view === "board" || view === "list" || view === "timeline";
 
   return (
     <header
@@ -57,10 +330,11 @@ export function Topbar({
         flexWrap: "wrap",
       }}
     >
-      {/* mobile menu */}
+      {/* open command center */}
       <button
         type="button"
-        aria-label="Open navigation"
+        aria-label="Open command center"
+        title="Open command center"
         onClick={onOpenMobileNav}
         className="atlas-mobile-only"
         style={{
@@ -69,10 +343,21 @@ export function Topbar({
           display: "grid",
           placeItems: "center",
           borderRadius: 10,
-          border: "1px solid var(--border)",
-          background: "var(--glass)",
-          color: "var(--text-soft)",
+          border: "1px solid var(--border-strong)",
+          background: "color-mix(in srgb, var(--primary-bright) 12%, var(--glass))",
+          color: "var(--primary)",
           cursor: "pointer",
+          transition: "background var(--dur), transform var(--dur), box-shadow var(--dur)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "color-mix(in srgb, var(--primary-bright) 26%, transparent)";
+          e.currentTarget.style.transform = "translateY(-1px) scale(1.05)";
+          e.currentTarget.style.boxShadow = "var(--glow)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "color-mix(in srgb, var(--primary-bright) 12%, var(--glass))";
+          e.currentTarget.style.transform = "none";
+          e.currentTarget.style.boxShadow = "none";
         }}
       >
         <Icon name="menu" size={18} />
@@ -125,45 +410,14 @@ export function Topbar({
         />
       </div>
 
-      {/* Marketplace filter (segmented) */}
+      {/* Assignment-scope filter (everyone / mine / involving me) */}
+      {showScopeFilter && (
+        <ScopeFilterControl value={scopeFilter} onChange={setScopeFilter} />
+      )}
+
+      {/* Marketplace filter (dropdown — scales to all 7 channels) */}
       {showMarketplaceFilter && (
-        <div
-          className="atlas-mp-filter"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-            padding: 3,
-            borderRadius: 10,
-            border: "1px solid var(--border)",
-            background: "var(--bg-2)",
-          }}
-        >
-          {(["all", ...MARKETPLACES] as const).map((m) => {
-            const on = marketplaceFilter === m;
-            return (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMarketplaceFilter(m)}
-                style={{
-                  padding: "6px 11px",
-                  borderRadius: 7,
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: on ? "var(--text)" : "var(--muted)",
-                  background: on ? "color-mix(in srgb, var(--primary-bright) 24%, transparent)" : "transparent",
-                  boxShadow: on ? "inset 0 0 0 1px var(--border-strong)" : "none",
-                  transition: "all var(--dur)",
-                }}
-              >
-                {m === "all" ? "All" : m}
-              </button>
-            );
-          })}
-        </div>
+        <MarketplaceFilter value={marketplaceFilter} onChange={setMarketplaceFilter} />
       )}
 
       <ThemeToggle />
