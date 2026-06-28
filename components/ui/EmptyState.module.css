@@ -1,0 +1,119 @@
+/* EmptyState — zero-data state component */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+}
+
+.rootCompact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-2);
+  text-align: center;
+}
+
+/* ── Animated icon ring ────────────────────────────────────────────────── */
+
+.iconWrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--primary-bright) 20%, transparent);
+  animation: pulseRing 3s ease-in-out infinite;
+}
+
+@keyframes pulseRing {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.1;
+  }
+}
+
+.iconCircle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--primary-bright) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary-bright) 24%, transparent);
+  color: var(--primary-bright);
+}
+
+/* ── Text ──────────────────────────────────────────────────────────────── */
+
+.title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-soft);
+  letter-spacing: -0.005em;
+}
+
+.titleCompact {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.subtitle {
+  font-size: var(--text-xs);
+  color: var(--muted-2);
+  max-width: 260px;
+  line-height: 1.5;
+}
+
+/* ── Action button ─────────────────────────────────────────────────────── */
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--primary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--dur), background var(--dur), box-shadow var(--dur);
+}
+
+.actionBtn:hover {
+  border-color: var(--primary-bright);
+  background: color-mix(in srgb, var(--primary-bright) 8%, transparent);
+  box-shadow: var(--glow);
+}
+
+.actionBtn:focus-visible {
+  outline: 2px solid var(--primary-bright);
+  outline-offset: 2px;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .ring {
+    animation: none;
+  }
+}

@@ -8,7 +8,7 @@
 //
 // On small screens (< 860px) all modes fall back to the hamburger + drawer.
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { PROJECTS, person, ME } from "@/lib/seed";
 import { useStore } from "@/lib/store";
@@ -94,6 +94,7 @@ export function SidebarContent({
   setProjectFilter,
   onOpenSettings,
   onClose,
+  onOpenTask,
 }: {
   view: ViewKey;
   setView: (v: ViewKey) => void;
@@ -102,6 +103,7 @@ export function SidebarContent({
   onOpenSettings: () => void;
   /** When provided, clicking the logo toggles the drawer closed. */
   onClose?: () => void;
+  onOpenTask?: (id: string) => void;
 }) {
   const { tasks } = useStore();
   const me = person(ME);
@@ -144,8 +146,8 @@ export function SidebarContent({
           const selected = projectFilter === p.id;
           const count = projectTaskCount(p.id);
           return (
+            <React.Fragment key={p.id}>
             <button
-              key={p.id}
               type="button"
               onClick={() => {
                 setProjectFilter(p.id);
@@ -168,6 +170,34 @@ export function SidebarContent({
               )}
               <span className={`mono ${styles.projTaskCount}`}>{count}</span>
             </button>
+            {/* Show clickable tasks under the selected project */}
+            {selected && (
+              <div className={styles.projTaskList}>
+                {tasks
+                  .filter((t) => t.projectId === p.id && t.statusKey !== "done")
+                  .slice(0, 5)
+                  .map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => onOpenTask?.(t.id)}
+                      className={styles.projTaskItem}
+                      title={t.title}
+                    >
+                      <span className={styles.projTaskDot} style={{
+                        background: t.isBlocked ? 'var(--error)' : 'var(--muted-2)',
+                      }} />
+                      <span className={styles.projTaskTitle}>{t.title}</span>
+                    </button>
+                  ))}
+                {tasks.filter((t) => t.projectId === p.id && t.statusKey !== "done").length > 5 && (
+                  <span className={styles.projTaskMore}>
+                    +{tasks.filter((t) => t.projectId === p.id && t.statusKey !== "done").length - 5} more
+                  </span>
+                )}
+              </div>
+            )}
+            </React.Fragment>
           );
         })}
       </div>
@@ -280,6 +310,7 @@ export function Sidebar(props: {
   setMobileOpen: (b: boolean) => void;
   onOpenSettings: () => void;
   sidebarMode: SidebarMode;
+  onOpenTask?: (id: string) => void;
 }) {
   // State for the icon-rail flyout expansion
   const [railExpanded, setRailExpanded] = useState(false);

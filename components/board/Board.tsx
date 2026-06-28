@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -12,8 +12,9 @@ import {
   pointerWithin,
   type DragStartEvent,
   type DragEndEvent,
+  type DragMoveEvent,
 } from "@dnd-kit/core";
-import { motion } from "motion/react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useStore } from "@/lib/store";
 import { PEOPLE, person } from "@/lib/seed";
 import type { Marketplace, Task } from "@/lib/types";
@@ -40,13 +41,26 @@ function columnOf(t: Task): string {
   return t.isBlocked ? "blocked" : t.statusKey;
 }
 
-function DraggableCard({ task, onOpen }: { task: Task; onOpen: () => void }) {
+/** Clamp a number to a range. */
+function clamp(val: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, val));
+}
+
+function DraggableCard({ task, onOpen, staggerIndex }: { task: Task; onOpen: () => void; staggerIndex: number }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id });
   return (
     <motion.div
       ref={setNodeRef}
       layout
       layoutId={`card-${task.id}`}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8, transition: { duration: 0.15 } }}
+      transition={{
+        layout: { type: "spring", stiffness: 350, damping: 28 },
+        opacity: { duration: 0.25, delay: staggerIndex * 0.03 },
+        y: { duration: 0.3, delay: staggerIndex * 0.03 },
+      }}
       {...attributes}
       {...listeners}
       className={`${styles.draggableWrap} ${isDragging ? styles.draggableHidden : ""}`}
@@ -87,14 +101,24 @@ function Column({
 
       {/* Drop zone */}
       <div ref={setNodeRef} className={zoneClass}>
-        {tasks.length ? (
-          tasks.map((t) => <DraggableCard key={t.id} task={t} onOpen={() => onOpen(t.id)} />)
-        ) : (
-          <div className={styles.emptyCol}>
-            <Icon name={isBlockedCol ? "check-circle" : "board"} size={20} />
-            <span className={styles.emptyLabel}>{isBlockedCol ? "Nothing blocked" : "Drop tasks here"}</span>
-          </div>
-        )}
+        <LayoutGroup>
+          <AnimatePresence mode="popLayout">
+            {tasks.length ? (
+              tasks.map((t, i) => <DraggableCard key={t.id} task={t} onOpen={() => onOpen(t.id)} staggerIndex={i} />)
+            ) : (
+              <motion.div
+                key="empty"
+                className={styles.emptyCol}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <Icon name={isBlockedCol ? "check-circle" : "board"} size={20} />
+                <span className={styles.emptyLabel}>{isBlockedCol ? "Nothing blocked" : "Drop tasks here"}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </LayoutGroup>
       </div>
     </div>
   );
@@ -130,12 +154,48 @@ export function Board({
 
   const active = tasks.find((t) => t.id === activeId) ?? null;
 
+  // ── Velocity tracking for physics-based tilt ──
+  const velocityRef = useRef({ x: 0, y: 0 });
+  const [dragRotate, setDragRotate] = useState(0);
+
+  // ── Cursor tracking for spotlight effect ──
+  const surfaceRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = useCallback((e: React.PointerEvent) => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+
+    // Update CSS custom properties on all cards within the board surface
+    const cards = surface.querySelectorAll<HTMLElement>("[class*='card']");
+    cards.forEach((card) => {
+      const rect = card.getBoundingClientRect();
+      card.style.setProperty("--mouse-x", `${e.clientX - rect.left}px`);
+      card.style.setProperty("--mouse-y", `${e.clientY - rect.top}px`);
+    });
+  }, []);
+
   function onDragStart(e: DragStartEvent) {
     setActiveId(String(e.active.id));
+    velocityRef.current = { x: 0, y: 0 };
+    setDragRotate(0);
   }
+
+  function onDragMove(e: DragMoveEvent) {
+    // Track cursor velocity for physics-based tilt
+    const dx = e.delta.x;
+    const dy = e.delta.y;
+    velocityRef.current = { x: dx, y: dy };
+
+    // Calculate tilt: tilts in the direction of movement, clamped to ±12°
+    const tilt = clamp(dx * 0.5, -12, 12);
+    setDragRotate(tilt);
+  }
+
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     setActiveId(null);
+    setDragRotate(0);
+    velocityRef.current = { x: 0, y: 0 };
     if (!over) return;
     const target = String(over.id);
     const id = String(active.id);
@@ -168,8 +228,20 @@ export function Board({
     })).filter((l) => l.tasks.length > 0);
   }, [groupBy, tasks]);
 
+  // ── Spring-based drop animation (replaces canned cubic-bezier) ──
+  const springDrop = {
+    duration: 280,
+    easing: "cubic-bezier(0.34, 1.56, 0.64, 1)",  // Overshoot spring approximation
+  };
+
   return (
-    <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={pointerWithin}
+      onDragStart={onDragStart}
+      onDragMove={onDragMove}
+      onDragEnd={onDragEnd}
+    >
       {/* Toolbar */}
       <div className={styles.toolbar}>
         <div className={styles.groupLabel}>
@@ -196,8 +268,12 @@ export function Board({
         </span>
       </div>
 
-      {/* Scrollable board surface */}
-      <div className={styles.surface}>
+      {/* Scrollable board surface — cursor tracking */}
+      <div
+        ref={surfaceRef}
+        className={styles.surface}
+        onPointerMove={handleMouseMove}
+      >
         {lanes ? (
           <div className={styles.lanes}>
             {lanes.map((lane) => (
@@ -221,11 +297,21 @@ export function Board({
         )}
       </div>
 
-      <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.16,1,0.3,1)" }}>
+      <DragOverlay dropAnimation={springDrop}>
         {active ? (
-          <div className={styles.overlay}>
+          <motion.div
+            className={styles.overlay}
+            animate={{
+              rotate: dragRotate,
+              scale: 1.04,
+            }}
+            transition={{
+              rotate: { type: "spring", stiffness: 600, damping: 30 },
+              scale: { type: "spring", stiffness: 400, damping: 25 },
+            }}
+          >
             <TaskCard task={active} dragging />
-          </div>
+          </motion.div>
         ) : null}
       </DragOverlay>
     </DndContext>

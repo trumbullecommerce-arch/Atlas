@@ -221,6 +221,67 @@
   flex: 0 0 auto;
 }
 
+/* ── Task items under expanded project ─────────────────────────────────── */
+
+.projTaskList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 22px;
+  margin-bottom: var(--space-1);
+}
+
+.projTaskItem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background var(--dur);
+}
+
+.projTaskItem:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.projTaskItem:focus-visible {
+  outline: 2px solid var(--primary-bright);
+  outline-offset: -2px;
+}
+
+.projTaskDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.projTaskTitle {
+  font-size: 11.5px;
+  color: var(--text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.projTaskMore {
+  font-size: 10.5px;
+  color: var(--muted-2);
+  padding-left: 12px;
+  padding-top: 2px;
+  font-style: italic;
+}
+
+:global(html[data-mode="light"]) .projTaskItem:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+
 /* ── User footer ───────────────────────────────────────────────────────── */
 
 .userSection {

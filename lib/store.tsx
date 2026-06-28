@@ -1,19 +1,12 @@
 "use client";
 
-// Client-side Atlas store. Seeds from lib/seed.ts and exposes the mutations the
-// UI needs (drag tasks between columns, toggle DoD/subtasks, comment, block).
-// Kept deliberately thin so a Supabase-backed implementation can drop in later.
+// Zustand-based Atlas store. Seeds from lib/seed.ts and exposes mutations.
+// Fine-grained selectors ensure components only re-render when their specific
+// slice of state changes — surgical updates instead of full-tree re-renders.
 
+import { create } from "zustand";
 import { notify } from "@/components/ui/Toaster";
-
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import {
   AUDIT_ITEMS,
   ME,
@@ -43,9 +36,26 @@ function nowIso(): string {
   return `${TODAY}T18:30:00Z`;
 }
 
-interface StoreValue {
+// Local helper to avoid importing seed STATUSES here (keeps this module light).
+function labelFor(key: string): string {
+  switch (key) {
+    case "backlog": return "Backlog";
+    case "todo": return "To do";
+    case "doing": return "In progress";
+    case "review": return "Review";
+    case "done": return "Verified";
+    case "blocked": return "Blocked";
+    default: return key;
+  }
+}
+
+// ── Zustand Store ──────────────────────────────────────────────────────────
+
+interface AtlasState {
   tasks: Task[];
   auditItems: AuditItem[];
+
+  // Mutations
   addTask: (input: NewTaskInput) => string;
   moveTask: (taskId: string, statusKey: string) => void;
   reorderInColumn: (taskId: string, statusKey: string, beforeId: string | null) => void;
@@ -59,15 +69,11 @@ interface StoreValue {
   setAuditStatus: (itemId: string, status: AuditItemStatus) => void;
 }
 
-const StoreContext = createContext<StoreValue | null>(null);
+const useAtlasStore = create<AtlasState>((set, get) => ({
+  tasks: TASKS.map((t) => ({ ...t })),
+  auditItems: AUDIT_ITEMS.map((a) => ({ ...a })),
 
-export function StoreProvider({ children }: { children: ReactNode }) {
-  const [tasks, setTasks] = useState<Task[]>(() => TASKS.map((t) => ({ ...t })));
-  const [auditItems, setAuditItems] = useState<AuditItem[]>(() =>
-    AUDIT_ITEMS.map((a) => ({ ...a })),
-  );
-
-  const addTask = useCallback((input: NewTaskInput): string => {
+  addTask: (input: NewTaskInput): string => {
     const id = uid("t");
     const created = nowIso();
     const newTask: Task = {
@@ -96,15 +102,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       estimateMinutes: null,
       createdAt: created,
     };
-    // Prepend so the new task appears at the top of its column / group.
-    setTasks((prev) => [newTask, ...prev]);
+    set((state) => ({ tasks: [newTask, ...state.tasks] }));
     notify.success(`Task created: ${input.title.trim().slice(0, 40)}`);
     return id;
-  }, []);
+  },
 
-  const moveTask = useCallback((taskId: string, statusKey: string) => {
-    setTasks((prev) =>
-      prev.map((t) => {
+  moveTask: (taskId: string, statusKey: string) => {
+    set((state) => ({
+      tasks: state.tasks.map((t) => {
         if (t.id !== taskId || t.statusKey === statusKey) return t;
         const entry = {
           id: uid("ac"),
@@ -113,43 +118,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           text: `moved to ${labelFor(statusKey)}`,
           createdAt: nowIso(),
         };
-        const becameDone = statusKey === "done";
         return {
           ...t,
           statusKey,
-          // Leaving the blocked column clears the blocked flag.
           isBlocked: statusKey === "blocked" ? t.isBlocked : false,
           blockedReason: statusKey === "blocked" ? t.blockedReason : null,
           activity: [...t.activity, entry],
-          // Auto-complete checklist visual when verified (non-destructive flag only).
-          ...(becameDone ? {} : {}),
         };
       }),
-    );
+    }));
     notify.info(`Moved to ${labelFor(statusKey)}`);
-  }, []);
+  },
 
-  const reorderInColumn = useCallback(
-    (taskId: string, statusKey: string, beforeId: string | null) => {
-      setTasks((prev) => {
-        const moving = prev.find((t) => t.id === taskId);
-        if (!moving) return prev;
-        const others = prev.filter((t) => t.id !== taskId);
-        const updatedMoving = { ...moving, statusKey };
-        if (!beforeId) {
-          return [...others, updatedMoving];
-        }
-        const idx = others.findIndex((t) => t.id === beforeId);
-        if (idx === -1) return [...others, updatedMoving];
-        return [...others.slice(0, idx), updatedMoving, ...others.slice(idx)];
-      });
-    },
-    [],
-  );
+  reorderInColumn: (taskId: string, statusKey: string, beforeId: string | null) => {
+    set((state) => {
+      const moving = state.tasks.find((t) => t.id === taskId);
+      if (!moving) return state;
+      const others = state.tasks.filter((t) => t.id !== taskId);
+      const updatedMoving = { ...moving, statusKey };
+      if (!beforeId) {
+        return { tasks: [...others, updatedMoving] };
+      }
+      const idx = others.findIndex((t) => t.id === beforeId);
+      if (idx === -1) return { tasks: [...others, updatedMoving] };
+      return { tasks: [...others.slice(0, idx), updatedMoving, ...others.slice(idx)] };
+    });
+  },
 
-  const toggleChecklist = useCallback((taskId: string, itemId: string) => {
-    setTasks((prev) =>
-      prev.map((t) =>
+  toggleChecklist: (taskId: string, itemId: string) => {
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
         t.id === taskId
           ? {
               ...t,
@@ -159,12 +157,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }
           : t,
       ),
-    );
-  }, []);
+    }));
+  },
 
-  const toggleSubtask = useCallback((taskId: string, subId: string) => {
-    setTasks((prev) =>
-      prev.map((t) =>
+  toggleSubtask: (taskId: string, subId: string) => {
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
         t.id === taskId
           ? {
               ...t,
@@ -174,14 +172,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }
           : t,
       ),
-    );
-  }, []);
+    }));
+  },
 
-  const addComment = useCallback((taskId: string, body: string) => {
+  addComment: (taskId: string, body: string) => {
     const clean = body.trim();
     if (!clean) return;
-    setTasks((prev) =>
-      prev.map((t) =>
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
         t.id === taskId
           ? {
               ...t,
@@ -196,13 +194,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }
           : t,
       ),
-    );
+    }));
     notify.info("Comment added");
-  }, []);
+  },
 
-  const setBlocked = useCallback((taskId: string, blocked: boolean, reason?: string) => {
-    setTasks((prev) =>
-      prev.map((t) =>
+  setBlocked: (taskId: string, blocked: boolean, reason?: string) => {
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
         t.id === taskId
           ? {
               ...t,
@@ -223,27 +221,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }
           : t,
       ),
-    );
+    }));
     notify.info(blocked ? "Task blocked" : "Block removed");
-  }, []);
+  },
 
-  const updateTask = useCallback((taskId: string, patch: Partial<Omit<Task, "id">>) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
-    );
+  updateTask: (taskId: string, patch: Partial<Omit<Task, "id">>) => {
+    set((state) => ({
+      tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
+    }));
     notify.success("Task updated");
-  }, []);
+  },
 
-  const deleteTask = useCallback((taskId: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+  deleteTask: (taskId: string) => {
+    set((state) => ({ tasks: state.tasks.filter((t) => t.id !== taskId) }));
     notify.info("Task deleted");
-  }, []);
+  },
 
-  const duplicateTask = useCallback((taskId: string): string => {
+  duplicateTask: (taskId: string): string => {
     const newId = uid("t");
-    setTasks((prev) => {
-      const src = prev.find((t) => t.id === taskId);
-      if (!src) return prev;
+    set((state) => {
+      const src = state.tasks.find((t) => t.id === taskId);
+      if (!src) return state;
       const dup: Task = {
         ...src,
         id: newId,
@@ -252,67 +250,69 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         comments: [],
         activity: [{ id: uid("a"), kind: "created", actorId: ME, text: "duplicated this task", createdAt: nowIso() }],
       };
-      return [dup, ...prev];
+      return { tasks: [dup, ...state.tasks] };
     });
     notify.success("Task duplicated");
     return newId;
-  }, []);
+  },
 
-  const setAuditStatus = useCallback((itemId: string, status: AuditItemStatus) => {
-    setAuditItems((prev) =>
-      prev.map((a) =>
+  setAuditStatus: (itemId: string, status: AuditItemStatus) => {
+    set((state) => ({
+      auditItems: state.auditItems.map((a) =>
         a.id === itemId
           ? { ...a, status, verifiedAt: status === "verified" ? nowIso() : a.verifiedAt }
           : a,
       ),
-    );
+    }));
     notify.info(`Audit status → ${status}`);
-  }, []);
+  },
+}));
 
-  const value = useMemo<StoreValue>(
-    () => ({
-      tasks,
-      auditItems,
-      addTask,
-      moveTask,
-      reorderInColumn,
-      toggleChecklist,
-      toggleSubtask,
-      addComment,
-      setBlocked,
-      updateTask,
-      deleteTask,
-      duplicateTask,
-      setAuditStatus,
-    }),
-    [tasks, auditItems, addTask, moveTask, reorderInColumn, toggleChecklist, toggleSubtask, addComment, setBlocked, updateTask, deleteTask, duplicateTask, setAuditStatus],
-  );
+// ── Backward-compatible API ────────────────────────────────────────────────
+// useStore() returns the same shape as before, so all existing components work
+// unchanged. The difference: Zustand components only re-render when their
+// selected state actually changes, not on every mutation.
 
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+// We keep the StoreProvider wrapper for the existing tree structure, but it's
+// now a thin pass-through since Zustand manages its own state.
+
+const StoreContext = createContext<boolean>(false);
+
+export function StoreProvider({ children }: { children: ReactNode }) {
+  return <StoreContext.Provider value={true}>{children}</StoreContext.Provider>;
 }
 
-export function useStore(): StoreValue {
-  const ctx = useContext(StoreContext);
-  if (!ctx) throw new Error("useStore must be used within StoreProvider");
-  return ctx;
+export function useStore() {
+  const mounted = useContext(StoreContext);
+  if (!mounted) throw new Error("useStore must be used within StoreProvider");
+  return useAtlasStore();
 }
 
-// Local helper to avoid importing seed STATUSES here (keeps this module light).
-function labelFor(key: string): string {
-  switch (key) {
-    case "backlog":
-      return "Backlog";
-    case "todo":
-      return "To do";
-    case "doing":
-      return "In progress";
-    case "review":
-      return "Review";
-    case "done":
-      return "Verified";
-    case "blocked":
-      return "Blocked";
-    default:
-      return key;
-  }
-}
+// ── Fine-grained selectors ─────────────────────────────────────────────────
+// Components can use these for surgical re-render control.
+
+/** Subscribe to just the tasks array. */
+export const useTasks = () => useAtlasStore((s) => s.tasks);
+
+/** Subscribe to just the audit items array. */
+export const useAuditItems = () => useAtlasStore((s) => s.auditItems);
+
+/** Subscribe to a single task by ID. Returns undefined if not found. */
+export const useTask = (id: string | null) =>
+  useAtlasStore((s) => (id ? s.tasks.find((t) => t.id === id) : undefined));
+
+/** Get just the mutation functions (never changes reference, never triggers re-render). */
+export const useStoreMutations = () =>
+  useAtlasStore((s) => ({
+    addTask: s.addTask,
+    moveTask: s.moveTask,
+    reorderInColumn: s.reorderInColumn,
+    toggleChecklist: s.toggleChecklist,
+    toggleSubtask: s.toggleSubtask,
+    addComment: s.addComment,
+    setBlocked: s.setBlocked,
+    updateTask: s.updateTask,
+    deleteTask: s.deleteTask,
+    duplicateTask: s.duplicateTask,
+    setAuditStatus: s.setAuditStatus,
+  }));

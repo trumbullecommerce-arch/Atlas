@@ -12,6 +12,7 @@ import styles from "./AppShell.module.css";
 // `body { overflow:hidden }` (globals.css) means this owns its own scrolling.
 
 import { useCallback, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { StoreProvider, useStore } from "@/lib/store";
 import { PrefsProvider, usePrefs } from "@/lib/prefs";
@@ -26,6 +27,7 @@ import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { AtlasToaster } from "@/components/ui/Toaster";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { useShortcuts, ShortcutsPanel } from "@/lib/shortcuts";
+import { HelpPanel, HelpFab } from "@/components/ui/HelpHub";
 import { Dashboard } from "@/components/views/Dashboard";
 import { List } from "@/components/views/List";
 import { Audits } from "@/components/views/Audits";
@@ -61,7 +63,20 @@ function Shell() {
   const { tasks } = useStore();
   const { prefs } = usePrefs();
 
-  const [view, setView] = useState<ViewKey>("dashboard");
+  const [view, setViewRaw] = useState<ViewKey>("dashboard");
+
+  // Navigate with the native View Transitions API for GPU-composited cross-fades.
+  // Falls back to instant state update if the browser doesn't support it.
+  const navigateView = useCallback((v: ViewKey) => {
+    if (document.startViewTransition) {
+      document.startViewTransition(() => {
+        flushSync(() => setViewRaw(v));
+      });
+    } else {
+      setViewRaw(v);
+    }
+  }, []);
+
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [marketplaceFilter, setMarketplaceFilter] = useState<Marketplace | "all">("all");
@@ -72,13 +87,14 @@ function Shell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   // When the dashboard routes into the List focused on a status, this holds the
   // status key so the List can expand + scroll that group into view (see List C).
   const [listFocus, setListFocus] = useState<string | null>(null);
 
   // Keyboard shortcuts
   useShortcuts({
-    onNavigate: (v) => { setView(v); setMobileNavOpen(false); },
+    onNavigate: (v) => { navigateView(v); setMobileNavOpen(false); },
     onNewTask: () => setNewTaskOpen(true),
     onCommandPalette: () => setCmdPaletteOpen((p) => !p),
     onClosePanel: () => {
@@ -144,7 +160,7 @@ function Shell() {
         <Sidebar
           view={view}
           setView={(v) => {
-            setView(v);
+            navigateView(v);
             setMobileNavOpen(false);
           }}
           projectFilter={projectFilter}
@@ -156,6 +172,7 @@ function Shell() {
             setMobileNavOpen(false);
           }}
           sidebarMode={prefs.sidebarMode}
+          onOpenTask={openTask}
         />
 
         <div className={styles.main}>
@@ -174,6 +191,7 @@ function Shell() {
 
           {/* Scrolling content region */}
           <main
+            id="atlas-main"
             key={view}
             className={`atlas-view ${styles.view}`}
           >
@@ -189,10 +207,10 @@ function Shell() {
                 {view === "dashboard" && (
                   <Dashboard
                     onOpen={openTask}
-                    setView={setView}
+                    setView={navigateView}
                     onFocusStatus={(statusKey) => {
                       setListFocus(statusKey);
-                      setView("list");
+                      navigateView("list");
                     }}
                   />
                 )}
@@ -231,7 +249,7 @@ function Shell() {
       <CommandPalette
         open={cmdPaletteOpen}
         onClose={() => setCmdPaletteOpen(false)}
-        onNavigate={(v) => { setView(v); setMobileNavOpen(false); }}
+        onNavigate={(v) => { navigateView(v); setMobileNavOpen(false); }}
         onOpenTask={(id) => setSelectedTaskId(id)}
         onNewTask={() => setNewTaskOpen(true)}
         onToggleTheme={() => {
@@ -245,6 +263,9 @@ function Shell() {
       />
 
       <ShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
+      <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} currentView={view} />
+      <HelpFab onClick={() => setHelpOpen(true)} />
     </div>
   );
 }

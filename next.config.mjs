@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: { ignoreDuringBuilds: true },
+  experimental: {
+    viewTransition: true,
+  },
 };
 
 export default nextConfig;

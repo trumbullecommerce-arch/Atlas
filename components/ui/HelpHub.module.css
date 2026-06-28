@@ -1,0 +1,219 @@
+/* HelpHub — contextual help system */
+
+/* ── Backdrop ──────────────────────────────────────────────────────────── */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.4);
+  z-index: 120;
+}
+
+/* ── Panel ─────────────────────────────────────────────────────────────── */
+
+.panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(400px, 100vw);
+  z-index: 121;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-3);
+  border-left: 1px solid var(--border);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panelTitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.closeBtn {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--dur), border-color var(--dur);
+}
+
+.closeBtn:hover {
+  color: var(--text-soft);
+  border-color: var(--border-strong);
+}
+
+/* ── Scrollable body ───────────────────────────────────────────────────── */
+
+.panelBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) 20px 28px;
+}
+
+.section {
+  margin-bottom: var(--space-5);
+}
+
+.sectionLabel {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: var(--space-3);
+}
+
+/* ── Tip card ──────────────────────────────────────────────────────────── */
+
+.tipCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 12px;
+  border-radius: var(--r);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-bottom: var(--space-2);
+  transition: border-color var(--dur), background var(--dur);
+}
+
+.tipCard:hover {
+  border-color: var(--border-strong);
+}
+
+.tipDismissed {
+  opacity: 0.55;
+}
+
+.tipIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--primary-bright) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary-bright) 24%, transparent);
+  color: var(--primary-bright);
+  flex: 0 0 auto;
+}
+
+.tipContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.tipTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+
+.tipBody {
+  font-size: 12px;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.tipDismissBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  transition: color var(--dur), border-color var(--dur), background var(--dur);
+}
+
+.tipDismissBtn:hover {
+  color: var(--secondary);
+  border-color: var(--secondary);
+  background: color-mix(in srgb, var(--secondary) 10%, transparent);
+}
+
+.tipDoneIcon {
+  color: var(--secondary);
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+
+/* ── Reset button ──────────────────────────────────────────────────────── */
+
+.resetBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color var(--dur), border-color var(--dur);
+}
+
+.resetBtn:hover {
+  color: var(--text-soft);
+  border-color: var(--border-strong);
+}
+
+/* ── Floating action button ────────────────────────────────────────────── */
+
+.fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 50;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--glass-2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow-2);
+  transition: color var(--dur), border-color var(--dur), box-shadow var(--dur);
+}
+
+.fab:hover {
+  color: var(--primary-bright);
+  border-color: var(--primary-bright);
+  box-shadow: var(--shadow-3), var(--glow);
+}
+
+.fab:focus-visible {
+  outline: 2px solid var(--primary-bright);
+  outline-offset: 2px;
+}

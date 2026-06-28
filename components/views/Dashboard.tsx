@@ -256,7 +256,7 @@ export function Dashboard({
       </div>
 
       {/* Charts row */}
-      <div className="atlas-dash-charts" style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 14 }}>
+      <div className="stagger atlas-dash-charts" style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 14 }}>
         <Panel>
           <SectionTitle
             icon={<Icon name="activity" size={14} style={{ color: "var(--primary)" }} />}
@@ -346,7 +346,7 @@ export function Dashboard({
       </div>
 
       {/* At-risk + activity row */}
-      <div className="atlas-dash-lower" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14 }}>
+      <div className="stagger atlas-dash-lower" style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14 }}>
         <Panel style={{ padding: 0, overflow: "hidden" }}>
           <div style={{ padding: "16px 18px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <SectionTitle icon={<Icon name="alert" size={14} style={{ color: "var(--error)" }} />}>

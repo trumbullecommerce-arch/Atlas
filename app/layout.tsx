@@ -36,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               "try{var m=localStorage.getItem('atlas-theme');document.documentElement.dataset.mode=(m==='light'||m==='dark')?m:'dark';}catch(e){document.documentElement.dataset.mode='dark';}",
           }}
         />
+        <a href="#atlas-main" className="skip-link">Skip to content</a>
         {children}
       </body>
     </html>

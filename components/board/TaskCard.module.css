@@ -8,6 +8,29 @@
   background: var(--surface);
   border: 1px solid var(--border);
   transition: border-color var(--dur);
+  overflow: hidden;
+}
+
+/* ── Cursor spotlight (specular highlight) ─────────────────────────────── */
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(255, 255, 255, 0.06),
+    transparent 40%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.card:hover::before {
+  opacity: 1;
 }
 
 .card.dragging {
