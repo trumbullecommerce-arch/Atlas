@@ -97,10 +97,10 @@ export function AreaLineChart({
               d={line}
               fill="none"
               stroke={s.color}
-              strokeWidth="4"
+              strokeWidth="3.5"
               strokeLinecap="round"
               // Chunky line gets a tinted glow in its OWN series color.
-              style={{ filter: `drop-shadow(0 3px 8px color-mix(in srgb, ${s.color} 55%, transparent))` }}
+              style={{ filter: `drop-shadow(0 6px 8px color-mix(in srgb, ${s.color} 50%, transparent))` }}
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
               transition={{ duration: 1.2, ease: "easeInOut", delay: drawDelay }}

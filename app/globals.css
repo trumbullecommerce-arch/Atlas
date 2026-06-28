@@ -42,8 +42,8 @@
   --warning: #f59e0b;
 
   /* Scales */
-  --r-sm: 6px;
-  --r: 8px;
+  --r-sm: 8px;
+  --r: 12px;
   --r-md: 16px;
   --r-lg: 24px;
   --r-pill: 9999px;
@@ -73,7 +73,7 @@
   --color-text-soft: var(--text-soft);
   --color-muted: var(--muted);
   --color-border: var(--border);
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -92,7 +92,7 @@ html {
 body {
   background: var(--floor);
   color: var(--text);
-  font-family: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -316,9 +316,9 @@ html[data-mode="light"] {
   --error-soft: #be123c;
   --warning: #b8740a;
   /* Bento float — large, ultra-soft, low-opacity so cards lift off the page. */
-  --shadow-1: 0 20px 40px -12px rgba(15, 23, 42, 0.06);
-  --shadow-2: 0 30px 60px -18px rgba(15, 23, 42, 0.09);
-  --shadow-3: 0 40px 90px -28px rgba(15, 23, 42, 0.12);
+  --shadow-1: 0 16px 32px -8px rgba(15, 23, 42, 0.04);
+  --shadow-2: 0 24px 48px -12px rgba(15, 23, 42, 0.06);
+  --shadow-3: 0 32px 64px -16px rgba(15, 23, 42, 0.08);
   --glow: 0 0 0 4px rgba(47, 109, 240, 0.14);
 }
 html[data-mode="light"] body { background: var(--floor); }

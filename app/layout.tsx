@@ -2,9 +2,9 @@ import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 
-const jakarta = Plus_Jakarta_Sans({
+const sans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-jakarta",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -17,8 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Atlas — Trumbull Command Center",
-  description:
-    "Atlas is Trumbull's multi-marketplace project command center.",
+  description: "Atlas is Trumbull's multi-marketplace project command center.",
 };
 
 export const viewport: Viewport = {
@@ -27,13 +26,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-mode="dark" suppressHydrationWarning className={`${jakarta.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" data-mode="dark" suppressHydrationWarning className={`${sans.variable} ${jetbrainsMono.variable}`}>
       <body>
         <script
           dangerouslySetInnerHTML={{

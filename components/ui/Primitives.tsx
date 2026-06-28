@@ -102,11 +102,6 @@ export function AvatarStack({
 }
 
 // ── Generic chip ──────────────────────────────────────────────────────────
-// Monday.com-style status block: a bold, fully-saturated SOLID fill with pure
-// white text, fully rounded. The fill is deepened toward midnight
-// (color-mix … #0b1020 16%) so white text stays legible even on our lighter
-// palette colors (mint, teal, amber, cyan). Set `tinted={false}` for the rare
-// neutral/outline variant (e.g. the "All channels" marketplace pill).
 export function Chip({
   children,
   color,
@@ -126,15 +121,16 @@ export function Chip({
         display: "inline-flex",
         alignItems: "center",
         gap: 5,
-        padding: "3px 10px",
-        borderRadius: "var(--r-pill)",
+        padding: "4px 14px",
+        borderRadius: 9999,
         fontSize: 11,
         fontWeight: 700,
         lineHeight: 1.6,
         whiteSpace: "nowrap",
-        color: tinted ? "#FFFFFF" : "var(--text-soft)",
-        background: tinted ? `color-mix(in srgb, ${color}, #0b1020 16%)` : "transparent",
+        color: tinted ? "#ffffff" : "var(--text-soft)",
+        background: tinted ? color : "transparent",
         border: tinted ? "none" : "1px solid var(--border)",
+        boxShadow: tinted ? `0 2px 8px color-mix(in srgb, ${color} 50%, transparent)` : "none",
         ...style,
       }}
     >
@@ -144,19 +140,25 @@ export function Chip({
   );
 }
 
-// ── Status pill (workflow column) ───────────────────────────────────────────
+// ── Status pill (Monday.com Style Color Blocking) ───────────────────────────
 const STATUS_PILL: Record<string, { label: string; color: string }> = {
-  backlog: { label: "Backlog", color: "#8c90a0" },
-  todo: { label: "To do", color: "#afc6ff" },
-  doing: { label: "In progress", color: "#548dff" },
-  review: { label: "Review", color: "#c0c1ff" },
-  done: { label: "Verified", color: "#4edea3" },
-  blocked: { label: "Blocked", color: "#f43f5e" },
+  backlog: { label: "Backlog", color: "var(--muted)" },
+  todo: { label: "To do", color: "#3B82F6" },
+  doing: { label: "In progress", color: "#F59E0B" },
+  review: { label: "Review", color: "#8B5CF6" },
+  done: { label: "Verified", color: "#10B981" },
+  blocked: { label: "Blocked", color: "#EF4444" },
 };
 
 export function StatusPill({ statusKey }: { statusKey: string }) {
   const s = STATUS_PILL[statusKey] ?? { label: statusKey, color: "#8c90a0" };
-  return <Chip color={s.color}>{s.label}</Chip>;
+  const isNeutral = statusKey === "backlog";
+
+  return (
+    <Chip color={s.color} tinted={!isNeutral}>
+      {s.label}
+    </Chip>
+  );
 }
 
 // ── Priority flag ─────────────────────────────────────────────────────────
