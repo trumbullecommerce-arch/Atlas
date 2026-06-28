@@ -342,6 +342,8 @@ export function Topbar({
           height: 38,
           display: "grid",
           placeItems: "center",
+          alignItems: "center",
+          justifyContent: "center",
           borderRadius: 10,
           border: "1px solid var(--border-strong)",
           background: "color-mix(in srgb, var(--primary-bright) 12%, var(--glass))",

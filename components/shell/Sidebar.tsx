@@ -334,20 +334,22 @@ export function Sidebar(props: {
               className="atlas-mobile-only"
             />
             <motion.aside
-              initial={{ x: -260 }}
+              initial={{ x: -310 }}
               animate={{ x: 0 }}
-              exit={{ x: -260 }}
+              exit={{ x: -310 }}
               transition={{ type: "spring", stiffness: 360, damping: 34 }}
-              className="atlas-mobile-only glass"
+              className="atlas-mobile-only"
               style={{
                 position: "fixed",
                 left: 0,
                 top: 0,
                 bottom: 0,
-                width: 264,
+                width: 300,
                 zIndex: 70,
                 borderRight: "1px solid var(--border)",
-                background: "var(--glass-2)",
+                background: "var(--surface)",
+                boxShadow: "var(--shadow-3)",
+                overflow: "hidden",
               }}
             >
               <SidebarContent {...props} />
