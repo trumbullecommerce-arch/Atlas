@@ -337,6 +337,33 @@ html[data-mode="light"] .atlas-list-row:hover { background: rgba(15, 23, 42, 0.0
 html[data-mode="light"] .atlas-activity-row:hover:not(:disabled) { background: rgba(15, 23, 42, 0.04) !important; }
 html[data-mode="light"] .atlas-audit-row.is-clickable:hover { background: rgba(15, 23, 42, 0.04) !important; }
 
+/* ── Smooth CSS hover for high-traffic interactive rows (both themes) ──────────
+   Replaces per-row JS onMouseEnter/onMouseLeave background mutations. Dark is
+   the base rule; light-mode variants live alongside the block above. */
+.atlas-list-row:hover { background: rgba(255, 255, 255, 0.028); }
+
+.atlas-activity-row:hover:not(:disabled) { background: rgba(255, 255, 255, 0.03); }
+
+.atlas-audit-row.is-clickable:hover { background: rgba(255, 255, 255, 0.028) !important; }
+
+/* At-risk / blocked rows on the dashboard. */
+.atlas-risk-row:hover { background: rgba(255, 255, 255, 0.025); }
+html[data-mode="light"] .atlas-risk-row:hover { background: rgba(15, 23, 42, 0.04); }
+
+/* Definition-of-Done checklist rows in the task detail. */
+.atlas-check-row:hover { background: rgba(255, 255, 255, 0.03); }
+html[data-mode="light"] .atlas-check-row:hover { background: rgba(15, 23, 42, 0.04); }
+
+/* Sidebar nav + project rows (only the non-active ones highlight). */
+.atlas-nav-item:not(.is-active):hover { background: rgba(255, 255, 255, 0.04); }
+html[data-mode="light"] .atlas-nav-item:not(.is-active):hover { background: rgba(15, 23, 42, 0.045); }
+.atlas-proj-item:not(.is-active):hover { background: rgba(255, 255, 255, 0.03); }
+html[data-mode="light"] .atlas-proj-item:not(.is-active):hover { background: rgba(15, 23, 42, 0.04); }
+
+/* Board card border affordance on hover (the lift is Motion-driven). */
+.atlas-task-card:hover { border-color: var(--border-strong); }
+.atlas-task-card.is-blocked:hover { border-color: color-mix(in srgb, var(--error) 55%, transparent); }
+
 /* Recent-activity rows: reveal the deep-link arrow on hover/focus. */
 .atlas-activity-row .atlas-activity-arrow { opacity: 0; transition: opacity var(--dur), color var(--dur); }
 .atlas-activity-row:hover .atlas-activity-arrow,

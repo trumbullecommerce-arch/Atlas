@@ -63,6 +63,7 @@ function NavItem({
     <button
       type="button"
       onClick={onClick}
+      className={active ? "atlas-nav-item is-active" : "atlas-nav-item"}
       style={{
         position: "relative",
         display: "flex",
@@ -82,12 +83,6 @@ function NavItem({
           : "transparent",
         boxShadow: active ? "inset 0 0 0 1px var(--border-strong), 0 10px 22px -14px rgba(84,141,255,0.6)" : "none",
         transition: "color var(--dur), background var(--dur)",
-      }}
-      onMouseEnter={(e) => {
-        if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
-      }}
-      onMouseLeave={(e) => {
-        if (!active) e.currentTarget.style.background = "transparent";
       }}
     >
       {active && (
@@ -181,6 +176,7 @@ export function SidebarContent({
               type="button"
               onClick={() => setProjectFilter(p.id)}
               title={p.name}
+              className={selected ? "atlas-proj-item is-active" : "atlas-proj-item"}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -195,12 +191,6 @@ export function SidebarContent({
                 color: selected ? "var(--text)" : "var(--text-soft)",
                 background: selected ? "rgba(255,255,255,0.05)" : "transparent",
                 transition: "background var(--dur)",
-              }}
-              onMouseEnter={(e) => {
-                if (!selected) e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-              }}
-              onMouseLeave={(e) => {
-                if (!selected) e.currentTarget.style.background = "transparent";
               }}
             >
               <span

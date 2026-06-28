@@ -9,27 +9,11 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useStore, type NewTaskInput } from "@/lib/store";
 import { ME, PEOPLE, PROJECTS, STATUSES, person } from "@/lib/seed";
-import { MARKETPLACE_META } from "@/lib/format";
+import { MARKETPLACE_META, PRIORITY_META } from "@/lib/format";
 import type { Marketplace, Priority } from "@/lib/types";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Avatar } from "@/components/ui/Primitives";
-
-// Native <select> arrow + glass styling shared by every dropdown in the form.
-const SELECT_STYLE: React.CSSProperties = {
-  appearance: "none",
-  WebkitAppearance: "none",
-  width: "100%",
-  padding: "9px 30px 9px 11px",
-  borderRadius: 10,
-  border: "1px solid var(--border)",
-  background:
-    "var(--bg-2) url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238c90a0' stroke-width='2' stroke-linecap='round'><path d='M3 4.5l3 3 3-3'/></svg>\") no-repeat right 10px center",
-  color: "var(--text)",
-  fontSize: 13,
-  fontFamily: "inherit",
-  cursor: "pointer",
-  outline: "none",
-};
+import { CustomSelect } from "@/components/ui/Select";
 
 const INPUT_STYLE: React.CSSProperties = {
   width: "100%",
@@ -212,45 +196,41 @@ function Inner({ onClose, onCreated }: { onClose: () => void; onCreated: (id: st
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <Field icon="grid" label="Project">
-            <select value={projectId} onChange={(e) => setProjectId(e.target.value)} style={SELECT_STYLE} onFocus={focusRing} onBlur={blurRing}>
-              {PROJECTS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <CustomSelect
+              ariaLabel="Project"
+              value={projectId}
+              onChange={setProjectId}
+              options={PROJECTS.map((p) => ({ value: p.id, label: p.name, color: p.color }))}
+            />
           </Field>
 
           <Field icon="activity" label="Status">
-            <select value={statusKey} onChange={(e) => setStatusKey(e.target.value)} style={SELECT_STYLE} onFocus={focusRing} onBlur={blurRing}>
-              {STATUSES.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            <CustomSelect
+              ariaLabel="Status"
+              value={statusKey}
+              onChange={setStatusKey}
+              options={STATUSES.map((s) => ({ value: s.key, label: s.name, color: s.color }))}
+            />
           </Field>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <Field icon="flag" label="Priority">
-            <select value={priority} onChange={(e) => setPriority(Number(e.target.value) as Priority)} style={SELECT_STYLE} onFocus={focusRing} onBlur={blurRing}>
-              {PRIORITIES.map((p) => (
-                <option key={p} value={p}>
-                  {PRIORITY_LABEL[p]}
-                </option>
-              ))}
-            </select>
+            <CustomSelect
+              ariaLabel="Priority"
+              value={String(priority)}
+              onChange={(v) => setPriority(Number(v) as Priority)}
+              options={PRIORITIES.map((p) => ({ value: String(p), label: PRIORITY_LABEL[p], color: PRIORITY_META[p].color }))}
+            />
           </Field>
 
           <Field icon="user" label="Owner">
-            <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} style={SELECT_STYLE} onFocus={focusRing} onBlur={blurRing}>
-              {PEOPLE.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.fullName}
-                </option>
-              ))}
-            </select>
+            <CustomSelect
+              ariaLabel="Owner"
+              value={ownerId}
+              onChange={setOwnerId}
+              options={PEOPLE.map((p) => ({ value: p.id, label: p.fullName }))}
+            />
           </Field>
         </div>
 
@@ -260,20 +240,16 @@ function Inner({ onClose, onCreated }: { onClose: () => void; onCreated: (id: st
           </Field>
 
           <Field icon="board" label="Marketplace">
-            <select
+            <CustomSelect
+              ariaLabel="Marketplace"
               value={marketplace}
-              onChange={(e) => setMarketplace(e.target.value as Marketplace | "")}
-              style={SELECT_STYLE}
-              onFocus={focusRing}
-              onBlur={blurRing}
-            >
-              <option value="">All channels</option>
-              {MARKETPLACES.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setMarketplace(v as Marketplace | "")}
+              placeholder="All channels"
+              options={[
+                { value: "", label: "All channels", color: "var(--muted)" },
+                ...MARKETPLACES.map((m) => ({ value: m, label: m, color: MARKETPLACE_META[m].color })),
+              ]}
+            />
           </Field>
         </div>
 

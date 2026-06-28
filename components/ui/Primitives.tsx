@@ -1,7 +1,10 @@
 // Reusable visual primitives: avatars, pills, flags, meters.
 // Style via the design tokens in globals.css.
 
+"use client";
+
 import type { CSSProperties, ReactNode } from "react";
+import { motion } from "motion/react";
 import { person } from "@/lib/seed";
 import { MARKETPLACE_META, PRIORITY_META } from "@/lib/format";
 import type { AuditItemStatus, Marketplace, Priority } from "@/lib/types";
@@ -267,6 +270,76 @@ export function AuditStatusPill({ status }: { status: AuditItemStatus }) {
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: m.color }} />
       {m.label}
     </Chip>
+  );
+}
+
+// ── Checkbox (spring toggle + drawn checkmark) ───────────────────────────────
+// A satisfying, theme-aware checkbox: the box springs on hover/tap and the
+// checkmark draws itself in on toggle. Used for Definition-of-Done items and
+// subtasks in the task detail. `color` tints the checked fill + border.
+export function Checkbox({
+  checked,
+  onClick,
+  color = "var(--secondary)",
+  size = 18,
+  ariaLabel,
+}: {
+  checked: boolean;
+  onClick: () => void;
+  color?: string;
+  size?: number;
+  ariaLabel?: string;
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={(e) => {
+        // Stop the click from bubbling to a clickable parent row (which would
+        // toggle a second time and cancel this one out).
+        e.stopPropagation();
+        onClick();
+      }}
+      aria-pressed={checked}
+      aria-label={ariaLabel}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.85 }}
+      transition={{ type: "spring", stiffness: 500, damping: 24 }}
+      style={{
+        width: size,
+        height: size,
+        flex: "0 0 auto",
+        padding: 0,
+        borderRadius: 5,
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        border: `1.5px solid ${checked ? color : "var(--outline)"}`,
+        background: checked ? color : "transparent",
+        // Border + background colors aren't transform-based, so transition them
+        // via CSS for a smooth fill while Motion drives the spring scale.
+        transition: "background-color var(--dur) var(--ease), border-color var(--dur) var(--ease)",
+      }}
+    >
+      <svg
+        width={size * 0.66}
+        height={size * 0.66}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="var(--floor)"
+        strokeWidth={3.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        style={{ display: "block" }}
+      >
+        <motion.path
+          d="M5 12l5 5L20 6"
+          initial={false}
+          animate={{ pathLength: checked ? 1 : 0, opacity: checked ? 1 : 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+        />
+      </svg>
+    </motion.button>
   );
 }
 

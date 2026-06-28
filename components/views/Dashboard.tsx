@@ -393,10 +393,6 @@ export function Dashboard({
                     cursor: taskId ? "pointer" : "default",
                     transition: "background var(--dur)",
                   }}
-                  onMouseEnter={(e) => {
-                    if (taskId) e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-                  }}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
                   {!isLast && (
                     <span style={{ position: "absolute", left: 21, top: 38, bottom: -2, width: 1.5, background: "var(--border)" }} />
@@ -448,6 +444,7 @@ function AtRiskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
+      className="atlas-risk-row"
       style={{
         display: "flex",
         alignItems: "center",
@@ -459,9 +456,8 @@ function AtRiskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
         background: "transparent",
         cursor: "pointer",
         textAlign: "left",
+        transition: "background var(--dur)",
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.025)")}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
       <span
         style={{

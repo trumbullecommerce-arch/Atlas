@@ -38,10 +38,15 @@ function Row({ task, onOpen }: { task: Task; onOpen: () => void }) {
   const doneChecks = task.checklist.filter((c) => c.done).length;
 
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onOpen}
       className="atlas-list-row"
+      layout
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
       style={{
         display: "grid",
         gridTemplateColumns: "26px minmax(0,1fr) 130px 96px 92px 110px",
@@ -51,15 +56,13 @@ function Row({ task, onOpen }: { task: Task; onOpen: () => void }) {
         padding: "10px 16px",
         border: "none",
         borderTop: "1px solid var(--border-soft)",
+        // Hover background is handled via the .atlas-list-row:hover CSS rule
+        // (both themes) so it doesn't fight Motion's layout transforms.
         background: task.isBlocked ? "color-mix(in srgb, var(--error) 5%, transparent)" : "transparent",
         cursor: "pointer",
         textAlign: "left",
         borderLeft: task.isBlocked ? "2px solid var(--error)" : "2px solid transparent",
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.028)")}
-      onMouseLeave={(e) =>
-        (e.currentTarget.style.background = task.isBlocked ? "color-mix(in srgb, var(--error) 5%, transparent)" : "transparent")
-      }
     >
       {/* priority dot */}
       <span style={{ display: "inline-flex", justifyContent: "center" }}>
@@ -135,7 +138,7 @@ function Row({ task, onOpen }: { task: Task; onOpen: () => void }) {
           <span style={{ color: "var(--muted-2)" }}>—</span>
         )}
       </span>
-    </button>
+    </motion.button>
   );
 }
 
@@ -158,7 +161,7 @@ function GroupSection({
   sectionRef?: (el: HTMLDivElement | null) => void;
 }) {
   return (
-    <div ref={sectionRef} className="panel" style={{ padding: 0, overflow: "hidden" }}>
+    <motion.div ref={sectionRef} layout className="panel" style={{ padding: 0, overflow: "hidden" }}>
       {/* group header (collapsible) */}
       <button
         type="button"
@@ -200,6 +203,7 @@ function GroupSection({
         {open && (
           <motion.div
             key="body"
+            layout
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -207,14 +211,18 @@ function GroupSection({
             style={{ overflow: "hidden" }}
           >
             <div style={{ borderTop: "1px solid var(--border-soft)" }}>
-              {group.tasks.map((t) => (
-                <Row key={t.id} task={t} onOpen={() => onOpen(t.id)} />
-              ))}
+              {/* Rows glide (layout) and fade on mount/unmount so re-grouping or
+                  filtering animates rather than snapping. */}
+              <AnimatePresence initial={false}>
+                {group.tasks.map((t) => (
+                  <Row key={t.id} task={t} onOpen={() => onOpen(t.id)} />
+                ))}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 

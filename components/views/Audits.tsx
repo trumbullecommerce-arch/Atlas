@@ -318,8 +318,6 @@ export function Audits({ marketplaceFilter }: { marketplaceFilter: Marketplace |
                     setSelectedId(a.id);
                   }
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.028)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = flaggedBg)}
                 style={{
                   display: "grid",
                   gridTemplateColumns: "150px minmax(0,1fr) 110px 150px 150px",

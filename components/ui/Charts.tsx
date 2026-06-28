@@ -1,7 +1,10 @@
 // Inline-SVG charts — gradient area line, donut, and stacked bar.
 // No charting dependency; 2px strokes + gradient fills + glow per the design.
 
+"use client";
+
 import { Fragment, useState } from "react";
+import { motion } from "motion/react";
 
 // ── Area + line chart (e.g. 14-day throughput) ──────────────────────────────
 export function AreaLineChart({
@@ -76,19 +79,44 @@ export function AreaLineChart({
       {series.map((s, i) => {
         const line = smoothPath(s.points);
         const area = `${line} L ${x(n - 1)},${pad * 0.4 + innerH} L ${x(0)},${pad * 0.4 + innerH} Z`;
+        // Stagger multiple series so the lines draw in sequence; the gradient
+        // area + end marker fade in just as each line completes.
+        const drawDelay = i * 0.18;
         return (
           <Fragment key={i}>
-            {s.fill !== false && <path d={area} fill={`url(#area-${i})`} />}
-            <path d={line} fill="none" stroke={s.color} strokeWidth="2.5" className="chart-glow" strokeLinecap="round" />
+            {s.fill !== false && (
+              <motion.path
+                d={area}
+                fill={`url(#area-${i})`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, ease: "easeInOut", delay: drawDelay + 0.6 }}
+              />
+            )}
+            <motion.path
+              d={line}
+              fill="none"
+              stroke={s.color}
+              strokeWidth="2.5"
+              className="chart-glow"
+              strokeLinecap="round"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 1.2, ease: "easeInOut", delay: drawDelay }}
+            />
             {/* last point marker */}
             {s.points.length > 0 && (
-              <circle
+              <motion.circle
                 cx={x(n - 1)}
                 cy={y(s.points[n - 1])}
                 r="3.5"
                 fill="var(--floor)"
                 stroke={s.color}
                 strokeWidth="2"
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 360, damping: 18, delay: drawDelay + 1.0 }}
+                style={{ transformOrigin: `${x(n - 1)}px ${y(s.points[n - 1])}px` }}
               />
             )}
           </Fragment>

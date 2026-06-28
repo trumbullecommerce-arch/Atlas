@@ -9,6 +9,7 @@ import type { ActivityKind, Task } from "@/lib/types";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import {
   Avatar,
+  Checkbox,
   Chip,
   MarketplacePill,
   PriorityFlag,
@@ -16,6 +17,7 @@ import {
   SectionTitle,
   StatusPill,
 } from "@/components/ui/Primitives";
+import { CustomSelect } from "@/components/ui/Select";
 
 const ACTIVITY_ICON: Record<ActivityKind, IconName> = {
   created: "sparkle",
@@ -48,31 +50,6 @@ function MetaRow({ icon, label, children }: { icon: IconName; label: string; chi
       </div>
       <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>{children}</div>
     </div>
-  );
-}
-
-function Checkbox({ checked, onClick, color = "var(--secondary)" }: { checked: boolean; onClick: () => void; color?: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={checked}
-      style={{
-        width: 18,
-        height: 18,
-        flex: "0 0 auto",
-        borderRadius: 5,
-        cursor: "pointer",
-        display: "grid",
-        placeItems: "center",
-        border: `1.5px solid ${checked ? color : "var(--outline)"}`,
-        background: checked ? color : "transparent",
-        color: "#04150e",
-        transition: "all var(--dur) var(--spring)",
-      }}
-    >
-      {checked && <Icon name="check" size={12} strokeWidth={2.6} />}
-    </button>
   );
 }
 
@@ -231,32 +208,20 @@ function Inner({ task, onClose }: { task: Task; onClose: () => void }) {
         {/* Meta grid */}
         <div style={{ borderRadius: 12 }}>
           <MetaRow icon="activity" label="Status">
-            <select
-              value={task.statusKey === "blocked" ? "blocked" : task.statusKey}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === "blocked") setBlocked(task.id, true, "Blocked from detail panel");
-                else moveTask(task.id, v);
-              }}
-              style={{
-                appearance: "none",
-                padding: "4px 26px 4px 10px",
-                borderRadius: 999,
-                border: "1px solid var(--border)",
-                background: "var(--surface) url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238c90a0' stroke-width='2' stroke-linecap='round'><path d='M3 4.5l3 3 3-3'/></svg>\") no-repeat right 8px center",
-                color: "var(--text)",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              {STATUSES.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.name}
-                </option>
-              ))}
-              <option value="blocked">Blocked</option>
-            </select>
+            <span style={{ width: 168, flex: "0 0 auto" }}>
+              <CustomSelect
+                ariaLabel="Status"
+                value={task.isBlocked ? "blocked" : task.statusKey}
+                onChange={(v) => {
+                  if (v === "blocked") setBlocked(task.id, true, "Blocked from detail panel");
+                  else moveTask(task.id, v);
+                }}
+                options={[
+                  ...STATUSES.map((s) => ({ value: s.key, label: s.name, color: s.color })),
+                  { value: "blocked", label: "Blocked", color: "var(--error)" },
+                ]}
+              />
+            </span>
             {status && <StatusPill statusKey={task.statusKey} />}
           </MetaRow>
 
@@ -336,30 +301,37 @@ function Inner({ task, onClose }: { task: Task; onClose: () => void }) {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {task.checklist.map((c) => (
-                <button
+                <div
                   key={c.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={c.done}
                   onClick={() => toggleChecklist(task.id, c.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleChecklist(task.id, c.id);
+                    }
+                  }}
+                  className="atlas-check-row"
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: 10,
                     padding: "7px 8px",
                     borderRadius: 8,
-                    border: "none",
                     background: "transparent",
                     cursor: "pointer",
                     textAlign: "left",
                     width: "100%",
+                    transition: "background var(--dur)",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
-                  <Checkbox checked={c.done} onClick={() => toggleChecklist(task.id, c.id)} />
+                  <Checkbox checked={c.done} onClick={() => toggleChecklist(task.id, c.id)} ariaLabel={c.label} />
                   <span style={{ fontSize: 13, color: c.done ? "var(--muted)" : "var(--text-soft)", textDecoration: c.done ? "line-through" : "none" }}>
                     {c.label}
                   </span>
-                </button>
+                </div>
               ))}
             </div>
           </>

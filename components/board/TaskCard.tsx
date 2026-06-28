@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "motion/react";
 import { person } from "@/lib/seed";
 import { dueLabel, dueState } from "@/lib/format";
 import type { Task } from "@/lib/types";
@@ -28,9 +29,25 @@ export function TaskCard({
   const ds = dueState(task.dueDate, isDone);
   const doneChecks = task.checklist.filter((c) => c.done).length;
 
+  // Resting vs lifted shadows; dragging gets a much deeper drop + ring so the
+  // card reads as physically picked up off the board.
+  const restShadow = "var(--shadow-1)";
+  const dragShadow = "0 30px 60px -12px rgba(0,0,0,0.8), 0 0 0 1px var(--border-strong)";
+
   return (
-    <div
+    <motion.div
       onClick={onOpen}
+      className={blocked ? "atlas-task-card is-blocked" : "atlas-task-card"}
+      // While dragging (rendered in the DragOverlay), lift + tilt the card with a
+      // snappy spring. When resting, a subtle hover-raise + tap-press.
+      animate={
+        dragging
+          ? { scale: 1.04, rotate: 3, boxShadow: dragShadow }
+          : { scale: 1, rotate: 0, y: 0, boxShadow: restShadow }
+      }
+      whileHover={dragging ? undefined : { y: -2 }}
+      whileTap={dragging ? undefined : { scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       style={{
         position: "relative",
         padding: "11px 12px",
@@ -39,23 +56,10 @@ export function TaskCard({
         background: blocked ? "color-mix(in srgb, var(--error) 9%, var(--surface))" : "var(--surface)",
         border: `1px solid ${blocked ? "color-mix(in srgb, var(--error) 36%, transparent)" : "var(--border)"}`,
         borderLeft: blocked ? "3px solid var(--error)" : undefined,
-        boxShadow: dragging
-          ? "0 18px 40px -12px rgba(0,0,0,0.7), 0 0 0 1px var(--border-strong)"
-          : "var(--shadow-1)",
-        transition: "border-color var(--dur), transform var(--dur) var(--spring), box-shadow var(--dur)",
-        transform: dragging ? "rotate(1.5deg)" : "none",
-      }}
-      onMouseEnter={(e) => {
-        if (!dragging) {
-          e.currentTarget.style.borderColor = blocked ? "color-mix(in srgb, var(--error) 55%, transparent)" : "var(--border-strong)";
-          e.currentTarget.style.transform = "translateY(-2px)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!dragging) {
-          e.currentTarget.style.borderColor = blocked ? "color-mix(in srgb, var(--error) 36%, transparent)" : "var(--border)";
-          e.currentTarget.style.transform = "none";
-        }
+        boxShadow: restShadow,
+        // Smooth the border-color hover affordance (transform/shadow are driven
+        // by Motion above, so they're excluded here).
+        transition: "border-color var(--dur)",
       }}
     >
       {/* Top: marketplace + priority */}
@@ -135,6 +139,6 @@ export function TaskCard({
           </span>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
