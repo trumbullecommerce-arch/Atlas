@@ -32,7 +32,7 @@ function Panel({ children, style, className }: { children: ReactNode; style?: Re
   return (
     <div
       className={`panel${className ? ` ${className}` : ""}`}
-      style={{ padding: 18, ...style }}
+      style={{ padding: 24, ...style }}
     >
       {children}
     </div>
@@ -97,11 +97,22 @@ function StatCard({
         )}
       </div>
       <div>
-        <div className="mono" style={{ fontSize: 30, fontWeight: 700, lineHeight: 1, color: "var(--text)" }}>
+        <div className="mono" style={{ fontSize: 38, fontWeight: 700, lineHeight: 1, letterSpacing: "-0.02em", color: "var(--text)" }}>
           {value}
         </div>
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-soft)", marginTop: 7 }}>{label}</div>
-        <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 2 }}>{sub}</div>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            color: "var(--muted)",
+            marginTop: 10,
+          }}
+        >
+          {label}
+        </div>
+        <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 3 }}>{sub}</div>
       </div>
       {spark && (
         <div style={{ marginTop: "auto" }}>

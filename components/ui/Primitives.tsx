@@ -102,6 +102,11 @@ export function AvatarStack({
 }
 
 // ── Generic chip ──────────────────────────────────────────────────────────
+// Monday.com-style status block: a bold, fully-saturated SOLID fill with pure
+// white text, fully rounded. The fill is deepened toward midnight
+// (color-mix … #0b1020 16%) so white text stays legible even on our lighter
+// palette colors (mint, teal, amber, cyan). Set `tinted={false}` for the rare
+// neutral/outline variant (e.g. the "All channels" marketplace pill).
 export function Chip({
   children,
   color,
@@ -121,14 +126,14 @@ export function Chip({
         display: "inline-flex",
         alignItems: "center",
         gap: 5,
-        padding: "2px 9px",
-        borderRadius: 999,
+        padding: "3px 10px",
+        borderRadius: "var(--r-pill)",
         fontSize: 11,
-        fontWeight: 600,
+        fontWeight: 700,
         lineHeight: 1.6,
         whiteSpace: "nowrap",
-        color: tinted ? color : "var(--text-soft)",
-        background: tinted ? `color-mix(in srgb, ${color} 15%, transparent)` : "transparent",
+        color: tinted ? "#FFFFFF" : "var(--text-soft)",
+        background: tinted ? `color-mix(in srgb, ${color}, #0b1020 16%)` : "transparent",
         border: tinted ? "none" : "1px solid var(--border)",
         ...style,
       }}
@@ -151,20 +156,7 @@ const STATUS_PILL: Record<string, { label: string; color: string }> = {
 
 export function StatusPill({ statusKey }: { statusKey: string }) {
   const s = STATUS_PILL[statusKey] ?? { label: statusKey, color: "#8c90a0" };
-  return (
-    <Chip color={s.color}>
-      <span
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: "50%",
-          background: s.color,
-          boxShadow: `0 0 6px ${s.color}`,
-        }}
-      />
-      {s.label}
-    </Chip>
-  );
+  return <Chip color={s.color}>{s.label}</Chip>;
 }
 
 // ── Priority flag ─────────────────────────────────────────────────────────
@@ -265,12 +257,7 @@ export const AUDIT_STATUS_META: Record<
 
 export function AuditStatusPill({ status }: { status: AuditItemStatus }) {
   const m = AUDIT_STATUS_META[status];
-  return (
-    <Chip color={m.color}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: m.color }} />
-      {m.label}
-    </Chip>
-  );
+  return <Chip color={m.color}>{m.label}</Chip>;
 }
 
 // ── Checkbox (spring toggle + drawn checkmark) ───────────────────────────────
