@@ -1,0 +1,113 @@
+/* TaskCard — Kanban board card */
+
+.card {
+  position: relative;
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--r);
+  cursor: pointer;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: border-color var(--dur);
+}
+
+.card.dragging {
+  cursor: grabbing;
+}
+
+.card.blocked {
+  background: color-mix(in srgb, var(--error) 9%, var(--surface));
+  border-color: color-mix(in srgb, var(--error) 36%, transparent);
+  border-left: 3px solid var(--error);
+}
+
+/* ── Sections ──────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.headerPriority {
+  margin-left: auto;
+}
+
+.title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.title.blockedTitle {
+  margin-bottom: var(--space-2);
+}
+
+/* ── Blocked reason banner ─────────────────────────────────────────────── */
+
+.blockedBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--r-sm);
+  margin-bottom: 10px;
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+}
+
+.blockedIcon {
+  color: var(--error);
+  margin-top: 2px;
+  flex: 0 0 auto;
+}
+
+.blockedText {
+  font-size: var(--text-xs);
+  color: var(--error-soft);
+  line-height: 1.35;
+}
+
+/* ── Footer ────────────────────────────────────────────────────────────── */
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.footerMeta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.metaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.metaComplete {
+  color: var(--secondary);
+}
+
+/* ── SKU tag ───────────────────────────────────────────────────────────── */
+
+.skuRow {
+  margin-top: var(--space-2);
+  display: flex;
+}
+
+.sku {
+  font-size: var(--text-2xs);
+  color: var(--muted-2);
+  padding: 1px var(--space-2);
+  border-radius: 5px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+}

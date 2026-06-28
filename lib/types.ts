@@ -158,6 +158,7 @@ export type ViewKey =
   | "dashboard"
   | "board"
   | "list"
+  | "calendar"
   | "timeline"
   | "audits";
 

@@ -4,6 +4,8 @@
 // UI needs (drag tasks between columns, toggle DoD/subtasks, comment, block).
 // Kept deliberately thin so a Supabase-backed implementation can drop in later.
 
+import { notify } from "@/components/ui/Toaster";
+
 import {
   createContext,
   useCallback,
@@ -93,6 +95,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
     // Prepend so the new task appears at the top of its column / group.
     setTasks((prev) => [newTask, ...prev]);
+    notify.success(`Task created: ${input.title.trim().slice(0, 40)}`);
     return id;
   }, []);
 
@@ -120,6 +123,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         };
       }),
     );
+    notify.info(`Moved to ${labelFor(statusKey)}`);
   }, []);
 
   const reorderInColumn = useCallback(
@@ -190,6 +194,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           : t,
       ),
     );
+    notify.info("Comment added");
   }, []);
 
   const setBlocked = useCallback((taskId: string, blocked: boolean, reason?: string) => {
@@ -216,6 +221,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           : t,
       ),
     );
+    notify.info(blocked ? "Task blocked" : "Block removed");
   }, []);
 
   const setAuditStatus = useCallback((itemId: string, status: AuditItemStatus) => {
@@ -226,6 +232,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           : a,
       ),
     );
+    notify.info(`Audit status → ${status}`);
   }, []);
 
   const value = useMemo<StoreValue>(

@@ -41,17 +41,62 @@
   --error-soft: #ffb4ab;
   --warning: #f59e0b;
 
-  /* Scales */
+  /* Spacing — 4px base grid (use these instead of ad-hoc px values) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+
+  /* Type scale — 6 deliberate sizes (use these instead of ad-hoc font sizes) */
+  --text-2xs: 10px;
+  --text-xs: 11.5px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 18px;
+  --text-xl: 24px;
+  --text-hero: 34px;
+
+  /* Radii */
+  --r-xs: 4px;
   --r-sm: 8px;
   --r: 12px;
   --r-md: 16px;
   --r-lg: 24px;
   --r-pill: 9999px;
 
+  /* Status colors — semantic tokens (replaces hardcoded hex in components) */
+  --status-todo: #64748b;
+  --status-progress: #3b82f6;
+  --status-review: #8b5cf6;
+  --status-done: #10b981;
+  --status-blocked: #f43f5e;
+  --status-backlog: #475569;
+
+  /* Marketplace colors */
+  --mp-amazon: #ff9900;
+  --mp-walmart: #0071dc;
+  --mp-wayfair: #7b2d8e;
+  --mp-shopify: #96bf48;
+  --mp-homedepot: #f96302;
+  --mp-lowes: #004990;
+  --mp-overstock: #e31837;
+
+  /* Priority colors */
+  --priority-critical: #ef4444;
+  --priority-high: #f59e0b;
+  --priority-medium: #3b82f6;
+  --priority-low: #64748b;
+
+  /* Timing / easing */
   --dur: 0.2s;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --spring: cubic-bezier(0.34, 1.4, 0.5, 1);
 
+  /* Elevation */
   --shadow-1: 0 4px 14px -8px rgba(0, 0, 0, 0.6);
   --shadow-2: 0 18px 44px -22px rgba(0, 0, 0, 0.7);
   --shadow-3: 0 30px 80px -30px rgba(0, 0, 0, 0.85);
@@ -320,6 +365,29 @@ html[data-mode="light"] {
   --shadow-2: 0 24px 48px -12px rgba(15, 23, 42, 0.06);
   --shadow-3: 0 32px 64px -16px rgba(15, 23, 42, 0.08);
   --glow: 0 0 0 4px rgba(47, 109, 240, 0.14);
+
+  /* Status colors — adjusted for light backgrounds */
+  --status-todo: #64748b;
+  --status-progress: #2563eb;
+  --status-review: #7c3aed;
+  --status-done: #059669;
+  --status-blocked: #e11d48;
+  --status-backlog: #475569;
+
+  /* Marketplace colors — darkened for light-mode contrast */
+  --mp-amazon: #c47600;
+  --mp-walmart: #005bb5;
+  --mp-wayfair: #5e1a6e;
+  --mp-shopify: #6d8f2e;
+  --mp-homedepot: #c74e00;
+  --mp-lowes: #003366;
+  --mp-overstock: #b51230;
+
+  /* Priority colors — adjusted for light backgrounds */
+  --priority-critical: #dc2626;
+  --priority-high: #d97706;
+  --priority-medium: #2563eb;
+  --priority-low: #64748b;
 }
 html[data-mode="light"] body { background: var(--floor); }
 /* Bento float: drop the hard outline and let the soft shadow define the card. */

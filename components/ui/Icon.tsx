@@ -43,7 +43,10 @@ export type IconName =
   | "shield"
   | "target"
   | "grid"
-  | "swimlane";
+  | "swimlane"
+  | "task"
+  | "keyboard"
+  | "theme";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   dashboard: (
@@ -239,6 +242,21 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <rect x="3" y="4" width="18" height="6" rx="1.5" />
       <rect x="3" y="14" width="18" height="6" rx="1.5" />
     </>
+  ),
+  task: (
+    <>
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </>
+  ),
+  keyboard: (
+    <>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10" />
+    </>
+  ),
+  theme: (
+    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
   ),
 };
 

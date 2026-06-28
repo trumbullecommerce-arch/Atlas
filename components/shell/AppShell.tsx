@@ -1,5 +1,7 @@
 "use client";
 
+import styles from "./AppShell.module.css";
+
 // Atlas application shell. Assembles the full client app on top of the store:
 //   ┌──────────────────────────────────────────────────────────┐
 //   │ Sidebar │ Topbar                                          │
@@ -21,9 +23,13 @@ import { Board } from "@/components/board/Board";
 import { TaskDetail } from "@/components/task-detail/TaskDetail";
 import { NewTaskDrawer } from "@/components/task-create/NewTaskDrawer";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
+import { AtlasToaster } from "@/components/ui/Toaster";
+import { CommandPalette } from "@/components/ui/CommandPalette";
+import { useShortcuts, ShortcutsPanel } from "@/lib/shortcuts";
 import { Dashboard } from "@/components/views/Dashboard";
 import { List } from "@/components/views/List";
 import { Audits } from "@/components/views/Audits";
+import { Calendar } from "@/components/views/Calendar";
 import { Timeline } from "@/components/views/Timeline";
 
 function Fx() {
@@ -64,9 +70,30 @@ function Shell() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   // When the dashboard routes into the List focused on a status, this holds the
   // status key so the List can expand + scroll that group into view (see List C).
   const [listFocus, setListFocus] = useState<string | null>(null);
+
+  // Keyboard shortcuts
+  useShortcuts({
+    onNavigate: (v) => { setView(v); setMobileNavOpen(false); },
+    onNewTask: () => setNewTaskOpen(true),
+    onCommandPalette: () => setCmdPaletteOpen((p) => !p),
+    onClosePanel: () => {
+      if (cmdPaletteOpen) { setCmdPaletteOpen(false); return; }
+      if (shortcutsOpen) { setShortcutsOpen(false); return; }
+      if (selectedTaskId) { setSelectedTaskId(null); return; }
+      if (newTaskOpen) { setNewTaskOpen(false); return; }
+      if (settingsOpen) { setSettingsOpen(false); return; }
+    },
+    onFocusSearch: () => {
+      const el = document.querySelector<HTMLInputElement>('.atlas-search input');
+      el?.focus();
+    },
+    onShowShortcuts: () => setShortcutsOpen(true),
+  });
 
   // Tasks scoped by the active project + marketplace + scope + search filters.
   // The dashboard and audits views intentionally ignore these (they're org-wide
@@ -110,10 +137,10 @@ function Shell() {
     // data-sidebar drives whether the persistent rail or the hamburger shows on
     // desktop (see the responsive rules in globals.css). Small screens always
     // fall back to the collapsible drawer regardless of this value.
-    <div data-sidebar={prefs.sidebarMode} style={{ position: "relative", height: "100%", width: "100%", overflow: "hidden" }}>
+    <div data-sidebar={prefs.sidebarMode} className={styles.root}>
       <Fx />
 
-      <div style={{ position: "relative", zIndex: 1, display: "flex", height: "100%", width: "100%" }}>
+      <div className={styles.layout}>
         <Sidebar
           view={view}
           setView={(v) => {
@@ -130,7 +157,7 @@ function Shell() {
           }}
         />
 
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100%" }}>
+        <div className={styles.main}>
           <Topbar
             view={view}
             search={search}
@@ -147,14 +174,7 @@ function Shell() {
           {/* Scrolling content region */}
           <main
             key={view}
-            className="atlas-view"
-            style={{
-              flex: 1,
-              minHeight: 0,
-              overflowY: "auto",
-              overflowX: "hidden",
-              padding: "24px 24px 56px",
-            }}
+            className={`atlas-view ${styles.view}`}
           >
             <AnimatePresence mode="wait">
               <motion.div
@@ -163,7 +183,7 @@ function Shell() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-                style={{ height: "100%" }}
+                className={styles.viewMotion}
               >
                 {view === "dashboard" && (
                   <Dashboard
@@ -184,6 +204,7 @@ function Shell() {
                     clearFocus={() => setListFocus(null)}
                   />
                 )}
+                {view === "calendar" && <Calendar tasks={filteredTasks} onOpen={openTask} />}
                 {view === "timeline" && <Timeline tasks={filteredTasks} onOpen={openTask} />}
                 {view === "audits" && <Audits marketplaceFilter={marketplaceFilter} />}
               </motion.div>
@@ -205,6 +226,24 @@ function Shell() {
       />
 
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+      <CommandPalette
+        open={cmdPaletteOpen}
+        onClose={() => setCmdPaletteOpen(false)}
+        onNavigate={(v) => { setView(v); setMobileNavOpen(false); }}
+        onOpenTask={(id) => setSelectedTaskId(id)}
+        onNewTask={() => setNewTaskOpen(true)}
+        onToggleTheme={() => {
+          const el = document.documentElement;
+          const next = el.dataset.mode === 'light' ? 'dark' : 'light';
+          el.dataset.mode = next;
+          localStorage.setItem('atlas-theme', next);
+        }}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onProjectFilter={setProjectFilter}
+      />
+
+      <ShortcutsPanel open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
   );
 }
@@ -214,6 +253,7 @@ export function AppShell() {
     <PrefsProvider>
       <StoreProvider>
         <Shell />
+        <AtlasToaster />
       </StoreProvider>
     </PrefsProvider>
   );

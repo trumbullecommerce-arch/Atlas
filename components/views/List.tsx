@@ -11,6 +11,7 @@ import { daysUntil, dueLabel, dueState } from "@/lib/format";
 import type { Task } from "@/lib/types";
 import { Icon } from "@/components/ui/Icon";
 import { Avatar, MarketplacePill, PriorityFlag } from "@/components/ui/Primitives";
+import styles from "./List.module.css";
 
 type GroupBy = "status" | "project";
 
@@ -25,7 +26,7 @@ const DUE_COLOR: Record<string, string> = {
 // Group ordering: status uses the workflow order (+ a virtual Blocked group);
 // project uses the sidebar order.
 const STATUS_GROUPS: { key: string; label: string; color: string }[] = [
-  { key: "blocked", label: "Blocked", color: "#f43f5e" },
+  { key: "blocked", label: "Blocked", color: "var(--status-blocked)" },
   ...STATUSES.filter((s) => !s.isDone).map((s) => ({ key: s.key, label: s.name, color: s.color })),
   ...STATUSES.filter((s) => s.isDone).map((s) => ({ key: s.key, label: s.name, color: s.color })),
 ];
@@ -41,56 +42,30 @@ function Row({ task, onOpen }: { task: Task; onOpen: () => void }) {
     <motion.button
       type="button"
       onClick={onOpen}
-      className="atlas-list-row"
+      className={`atlas-list-row ${styles.row} ${task.isBlocked ? styles.rowBlocked : ""}`}
       layout
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-      style={{
-        display: "grid",
-        gridTemplateColumns: "26px minmax(0,1fr) 130px 96px 92px 110px",
-        alignItems: "center",
-        gap: 12,
-        width: "100%",
-        padding: "10px 16px",
-        border: "none",
-        borderTop: "1px solid var(--border-soft)",
-        // Hover background is handled via the .atlas-list-row:hover CSS rule
-        // (both themes) so it doesn't fight Motion's layout transforms.
-        background: task.isBlocked ? "color-mix(in srgb, var(--error) 5%, transparent)" : "transparent",
-        cursor: "pointer",
-        textAlign: "left",
-        borderLeft: task.isBlocked ? "2px solid var(--error)" : "2px solid transparent",
-      }}
     >
       {/* priority dot */}
-      <span style={{ display: "inline-flex", justifyContent: "center" }}>
+      <span className={styles.priorityCell}>
         <PriorityFlag priority={task.priority} />
       </span>
 
       {/* title + project */}
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: isDone ? "var(--muted)" : "var(--text)",
-            textDecoration: isDone ? "line-through" : "none",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
+      <div className={styles.titleCell}>
+        <div className={`${styles.titleText} ${isDone ? styles.titleDone : ""}`}>
           {task.title}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 2 }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: proj?.color, flex: "0 0 auto" }} />
-          <span className="atlas-list-proj" style={{ fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <div className={styles.titleMeta}>
+          <span className={styles.projDot} style={{ background: proj?.color }} />
+          <span className={`atlas-list-proj ${styles.projName}`}>
             {proj?.name}
           </span>
           {task.sku && (
-            <span className="mono atlas-list-sku" style={{ fontSize: 9.5, color: "var(--muted-2)", padding: "0 5px", borderRadius: 4, background: "var(--bg-2)", border: "1px solid var(--border)" }}>
+            <span className={`mono atlas-list-sku ${styles.skuTag}`}>
               {task.sku}
             </span>
           )}
@@ -103,7 +78,7 @@ function Row({ task, onOpen }: { task: Task; onOpen: () => void }) {
       </span>
 
       {/* checklist progress */}
-      <span className="atlas-list-checks" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, color: doneChecks === task.checklist.length && task.checklist.length > 0 ? "var(--secondary)" : "var(--muted)" }}>
+      <span className={`atlas-list-checks ${styles.checkCell} ${doneChecks === task.checklist.length && task.checklist.length > 0 ? styles.checkComplete : ""}`}>
         {task.checklist.length > 0 ? (
           <>
             <Icon name="check-circle" size={13} />
@@ -112,20 +87,20 @@ function Row({ task, onOpen }: { task: Task; onOpen: () => void }) {
             </span>
           </>
         ) : (
-          <span style={{ color: "var(--muted-2)" }}>—</span>
+          <span className={styles.dim}>—</span>
         )}
       </span>
 
       {/* owner */}
-      <span className="atlas-list-ownerwrap" style={{ display: "inline-flex", alignItems: "center", gap: 7, minWidth: 0 }} title={owner?.fullName}>
+      <span className={`atlas-list-ownerwrap ${styles.ownerCell}`} title={owner?.fullName}>
         <Avatar personId={task.ownerId} size={22} />
-        <span className="atlas-list-owner" style={{ fontSize: 11.5, color: "var(--text-soft)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span className={`atlas-list-owner ${styles.ownerName}`}>
           {owner?.initials}
         </span>
       </span>
 
       {/* due */}
-      <span className="atlas-list-due" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, justifyContent: "flex-end", color: isDone ? "var(--secondary)" : DUE_COLOR[ds] }}>
+      <span className={`atlas-list-due ${styles.dueCell}`} style={{ color: isDone ? "var(--secondary)" : DUE_COLOR[ds] }}>
         {isDone ? (
           <>
             <Icon name="check-circle" size={13} /> verified
@@ -135,7 +110,7 @@ function Row({ task, onOpen }: { task: Task; onOpen: () => void }) {
             <Icon name="clock" size={12} /> {dueLabel(task.dueDate)}
           </>
         ) : (
-          <span style={{ color: "var(--muted-2)" }}>—</span>
+          <span className={styles.dim}>—</span>
         )}
       </span>
     </motion.button>
@@ -160,41 +135,28 @@ function GroupSection({
   onOpen: (id: string) => void;
   sectionRef?: (el: HTMLDivElement | null) => void;
 }) {
+  const dotShape = group.key === "blocked" || groupBy === "status" ? styles.groupDotStatus : styles.groupDotProject;
+
   return (
-    <motion.div ref={sectionRef} layout className="panel" style={{ padding: 0, overflow: "hidden" }}>
+    <motion.div ref={sectionRef} layout className={`panel ${styles.section}`}>
       {/* group header (collapsible) */}
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="atlas-list-grouphdr"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 9,
-          width: "100%",
-          padding: "12px 16px",
-          border: "none",
-          textAlign: "left",
-          cursor: "pointer",
-          color: "var(--text)",
-          background: "linear-gradient(180deg, rgba(255,255,255,0.03), transparent)",
-          transition: "background var(--dur)",
-        }}
+        className={`atlas-list-grouphdr ${styles.groupHdr}`}
       >
         <Icon
           name="chevron-right"
           size={15}
-          style={{
-            color: "var(--muted)",
-            flex: "0 0 auto",
-            transform: open ? "rotate(90deg)" : "none",
-            transition: "transform var(--dur) var(--ease)",
-          }}
+          className={`${styles.chevron} ${open ? styles.chevronOpen : ""}`}
         />
-        <span style={{ width: 9, height: 9, borderRadius: group.key === "blocked" || groupBy === "status" ? "50%" : 3, background: group.color, boxShadow: `0 0 7px ${group.color}`, flex: "0 0 auto" }} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{group.label}</span>
-        <span className="mono" style={{ fontSize: 11, color: "var(--muted)", padding: "1px 8px", borderRadius: 999, background: "var(--bg-2)", border: "1px solid var(--border)" }}>
+        <span
+          className={`${styles.groupDot} ${dotShape}`}
+          style={{ background: group.color, boxShadow: `0 0 7px ${group.color}` }}
+        />
+        <span className={styles.groupName}>{group.label}</span>
+        <span className={`mono ${styles.groupCount}`}>
           {group.tasks.length}
         </span>
       </button>
@@ -208,9 +170,9 @@ function GroupSection({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-            style={{ overflow: "hidden" }}
+            className={styles.groupBody}
           >
-            <div style={{ borderTop: "1px solid var(--border-soft)" }}>
+            <div className={styles.groupBodyInner}>
               {/* Rows glide (layout) and fade on mount/unmount so re-grouping or
                   filtering animates rather than snapping. */}
               <AnimatePresence initial={false}>
@@ -291,14 +253,14 @@ export function List({
   const isOpen = (key: string) => (key === listFocus ? true : !collapsed[key]);
 
   return (
-    <div style={{ maxWidth: 1380, margin: "0 auto" }}>
+    <div className={styles.container}>
       {/* Toolbar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "var(--muted)" }}>
+      <div className={styles.toolbar}>
+        <div className={styles.groupLabel}>
           <Icon name="list" size={15} />
           Group by
         </div>
-        <div style={{ display: "flex", gap: 2, padding: 3, borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-2)" }}>
+        <div className={styles.groupToggle}>
           {(["status", "project"] as GroupBy[]).map((g) => {
             const on = groupBy === g;
             return (
@@ -306,35 +268,24 @@ export function List({
                 key={g}
                 type="button"
                 onClick={() => setGroupBy(g)}
-                style={{
-                  padding: "5px 12px",
-                  borderRadius: 7,
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  textTransform: "capitalize",
-                  color: on ? "var(--text)" : "var(--muted)",
-                  background: on ? "color-mix(in srgb, var(--primary-bright) 24%, transparent)" : "transparent",
-                  boxShadow: on ? "inset 0 0 0 1px var(--border-strong)" : "none",
-                }}
+                className={`${styles.groupBtn} ${on ? styles.groupBtnActive : ""}`}
               >
                 {g}
               </button>
             );
           })}
         </div>
-        <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--muted-2)" }}>{tasks.length} tasks</span>
+        <span className={styles.taskCount}>{tasks.length} tasks</span>
       </div>
 
       {tasks.length === 0 && (
-        <div className="panel" style={{ padding: "48px 20px", textAlign: "center", color: "var(--muted)" }}>
-          <Icon name="list" size={26} style={{ color: "var(--muted-2)", marginBottom: 10 }} />
-          <div style={{ fontSize: 13.5 }}>No tasks match the current filters.</div>
+        <div className={`panel ${styles.empty}`}>
+          <Icon name="list" size={26} className={styles.emptyIcon} />
+          <div className={styles.emptyText}>No tasks match the current filters.</div>
         </div>
       )}
 
-      <div className="stagger" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div className={`stagger ${styles.sections}`}>
         {orderedGroups.map((g) => (
           <GroupSection
             key={g.key}

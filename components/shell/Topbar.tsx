@@ -12,6 +12,7 @@ const VIEW_TITLES: Record<ViewKey, { title: string; sub: string }> = {
   dashboard: { title: "Dashboard", sub: "Cross-project health across all your channels" },
   board: { title: "Board", sub: "Drag work across the pipeline" },
   list: { title: "List", sub: "Every task, grouped and sortable" },
+  calendar: { title: "Calendar", sub: "Tasks plotted on a monthly grid" },
   timeline: { title: "Timeline", sub: "Work plotted against target dates" },
   audits: { title: "Audits", sub: "Coverage-verified, not a checkbox" },
 };

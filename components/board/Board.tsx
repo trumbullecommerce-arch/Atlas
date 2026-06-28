@@ -20,17 +20,18 @@ import type { Marketplace, Task } from "@/lib/types";
 import { Icon } from "@/components/ui/Icon";
 import { Avatar } from "@/components/ui/Primitives";
 import { TaskCard } from "./TaskCard";
+import styles from "./Board.module.css";
 
 type ColumnDef = { key: string; name: string; color: string };
 
 // Board columns: blocked is a first-class lane.
 const COLUMNS: ColumnDef[] = [
-  { key: "backlog", name: "Backlog", color: "#8c90a0" },
-  { key: "todo", name: "To do", color: "#afc6ff" },
-  { key: "doing", name: "In progress", color: "#548dff" },
-  { key: "blocked", name: "Blocked", color: "#f43f5e" },
-  { key: "review", name: "Review", color: "#c0c1ff" },
-  { key: "done", name: "Verified", color: "#4edea3" },
+  { key: "backlog", name: "Backlog", color: "var(--status-backlog)" },
+  { key: "todo", name: "To do", color: "var(--status-todo)" },
+  { key: "doing", name: "In progress", color: "var(--status-progress)" },
+  { key: "blocked", name: "Blocked", color: "var(--status-blocked)" },
+  { key: "review", name: "Review", color: "var(--status-review)" },
+  { key: "done", name: "Verified", color: "var(--status-done)" },
 ];
 
 type GroupBy = "none" | "marketplace" | "owner";
@@ -48,7 +49,7 @@ function DraggableCard({ task, onOpen }: { task: Task; onOpen: () => void }) {
       layoutId={`card-${task.id}`}
       {...attributes}
       {...listeners}
-      style={{ marginBottom: 9, opacity: isDragging ? 0.35 : 1, touchAction: "none" }}
+      className={`${styles.draggableWrap} ${isDragging ? styles.draggableHidden : ""}`}
     >
       <TaskCard task={task} onOpen={onOpen} />
     </motion.div>
@@ -67,51 +68,31 @@ function Column({
   const { setNodeRef, isOver } = useDroppable({ id: col.key });
   const isBlockedCol = col.key === "blocked";
 
+  const zoneClass = [
+    styles.dropZone,
+    isBlockedCol ? styles.blocked : "",
+    isOver ? styles.over : "",
+  ].filter(Boolean).join(" ");
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", minWidth: 268, width: 268, flex: "0 0 268px" }}>
+    <div className={styles.column}>
       {/* Column header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 4px 10px" }}>
-        <span style={{ width: 8, height: 8, borderRadius: "50%", background: col.color, boxShadow: `0 0 7px ${col.color}` }} />
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text)" }}>{col.name}</span>
-        <span className="mono" style={{ fontSize: 11, color: "var(--muted)", padding: "1px 7px", borderRadius: 999, background: "var(--bg-2)", border: "1px solid var(--border)" }}>
+      <div className={styles.colHeader}>
+        <span className={styles.colDot} style={{ background: col.color, boxShadow: `0 0 7px ${col.color}` }} />
+        <span className={styles.colName}>{col.name}</span>
+        <span className={`mono ${styles.colCount}`}>
           {tasks.length}
         </span>
       </div>
 
       {/* Drop zone */}
-      <div
-        ref={setNodeRef}
-        style={{
-          flex: 1,
-          minHeight: 140,
-          padding: 8,
-          borderRadius: 14,
-          background: isBlockedCol
-            ? "color-mix(in srgb, var(--error) 6%, var(--bg))"
-            : "color-mix(in srgb, var(--surface) 50%, transparent)",
-          border: `1px solid ${
-            isOver ? "var(--primary-bright)" : isBlockedCol ? "color-mix(in srgb, var(--error) 24%, transparent)" : "var(--border)"
-          }`,
-          boxShadow: isOver ? "var(--glow)" : "none",
-          transition: "border-color var(--dur), box-shadow var(--dur)",
-        }}
-      >
+      <div ref={setNodeRef} className={zoneClass}>
         {tasks.length ? (
           tasks.map((t) => <DraggableCard key={t.id} task={t} onOpen={() => onOpen(t.id)} />)
         ) : (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              padding: "26px 8px",
-              color: "var(--muted-2)",
-            }}
-          >
+          <div className={styles.emptyCol}>
             <Icon name={isBlockedCol ? "check-circle" : "board"} size={20} />
-            <span style={{ fontSize: 11.5 }}>{isBlockedCol ? "Nothing blocked" : "Drop tasks here"}</span>
+            <span className={styles.emptyLabel}>{isBlockedCol ? "Nothing blocked" : "Drop tasks here"}</span>
           </div>
         )}
       </div>
@@ -127,7 +108,7 @@ function BoardGrid({
   onOpen: (id: string) => void;
 }) {
   return (
-    <div style={{ display: "flex", gap: 14, alignItems: "stretch", paddingBottom: 6 }}>
+    <div className={styles.grid}>
       {COLUMNS.map((col) => (
         <Column key={col.key} col={col} tasks={tasks.filter((t) => columnOf(t) === col.key)} onOpen={onOpen} />
       ))}
@@ -190,12 +171,12 @@ export function Board({
   return (
     <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={onDragStart} onDragEnd={onDragEnd}>
       {/* Toolbar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: "var(--muted)" }}>
+      <div className={styles.toolbar}>
+        <div className={styles.groupLabel}>
           <Icon name="swimlane" size={15} />
           Group by
         </div>
-        <div style={{ display: "flex", gap: 2, padding: 3, borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-2)" }}>
+        <div className={styles.groupToggle}>
           {(["none", "marketplace", "owner"] as GroupBy[]).map((g) => {
             const on = groupBy === g;
             return (
@@ -203,44 +184,33 @@ export function Board({
                 key={g}
                 type="button"
                 onClick={() => setGroupBy(g)}
-                style={{
-                  padding: "5px 11px",
-                  borderRadius: 7,
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  textTransform: "capitalize",
-                  color: on ? "#fff" : "var(--muted)",
-                  background: on ? "color-mix(in srgb, var(--primary-bright) 24%, transparent)" : "transparent",
-                  boxShadow: on ? "inset 0 0 0 1px var(--border-strong)" : "none",
-                }}
+                className={`${styles.groupBtn} ${on ? styles.groupBtnActive : ""}`}
               >
                 {g === "none" ? "Status" : g}
               </button>
             );
           })}
         </div>
-        <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--muted-2)" }}>
+        <span className={styles.taskCount}>
           {tasks.length} tasks · drag between columns
         </span>
       </div>
 
       {/* Scrollable board surface */}
-      <div style={{ overflowX: "auto", paddingBottom: 8 }}>
+      <div className={styles.surface}>
         {lanes ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <div className={styles.lanes}>
             {lanes.map((lane) => (
               <div key={lane.key}>
-                <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 10, position: "sticky", left: 0 }}>
+                <div className={styles.laneHeader}>
                   {groupBy === "owner" ? (
                     <Avatar personId={lane.key} size={22} />
                   ) : (
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--tertiary)" }} />
+                    <span className={styles.laneDot} />
                   )}
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{lane.label}</span>
-                  <span className="mono" style={{ fontSize: 11, color: "var(--muted-2)" }}>{lane.tasks.length}</span>
-                  <div style={{ flex: 1, height: 1, background: "var(--border-soft)" }} />
+                  <span className={styles.laneName}>{lane.label}</span>
+                  <span className={`mono ${styles.laneCount}`}>{lane.tasks.length}</span>
+                  <div className={styles.laneDivider} />
                 </div>
                 <BoardGrid tasks={lane.tasks} onOpen={onOpen} />
               </div>
@@ -253,7 +223,7 @@ export function Board({
 
       <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.16,1,0.3,1)" }}>
         {active ? (
-          <div style={{ width: 252 }}>
+          <div className={styles.overlay}>
             <TaskCard task={active} dragging />
           </div>
         ) : null}
