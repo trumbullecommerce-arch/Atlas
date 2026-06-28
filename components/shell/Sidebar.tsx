@@ -132,7 +132,7 @@ export function SidebarContent({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", padding: "18px 14px", gap: 6 }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", minWidth: 0, padding: "18px 14px", gap: 6 }}>
       <Logo />
 
       <div style={{ height: 1, background: "var(--border-soft)", margin: "12px 0 6px" }} />
