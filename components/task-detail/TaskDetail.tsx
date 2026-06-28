@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useStore } from "@/lib/store";
-import { ME, person, project, STATUSES } from "@/lib/seed";
+import { ME, person, project, STATUSES, PEOPLE } from "@/lib/seed";
 import { formatDate, relTime, PRIORITY_META } from "@/lib/format";
-import type { ActivityKind, Task } from "@/lib/types";
+import type { ActivityKind, Task, Marketplace, Priority } from "@/lib/types";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import {
   Avatar,
@@ -121,8 +121,36 @@ function CommentComposer({ onSubmit }: { onSubmit: (body: string) => void }) {
   );
 }
 
-function Inner({ task, onClose }: { task: Task; onClose: () => void }) {
-  const { toggleChecklist, toggleSubtask, addComment, setBlocked, moveTask } = useStore();
+const MARKETPLACE_OPTIONS: (Marketplace | null)[] = [
+  null, "Amazon", "Walmart", "Wayfair", "Lowe's", "Home Depot", "Ferguson Home", "bath1.com",
+];
+
+function ActionMenuItem({ icon, label, onClick, danger }: { icon: IconName; label: string; onClick: () => void; danger?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: "flex", alignItems: "center", gap: 9, width: "100%",
+        padding: "8px 10px", borderRadius: 8, border: "none",
+        background: "transparent", cursor: "pointer",
+        fontSize: 13, fontWeight: 500, fontFamily: "inherit",
+        color: danger ? "var(--error)" : "var(--text-soft)",
+        transition: "background var(--dur)",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = danger ? "color-mix(in srgb, var(--error) 10%, transparent)" : "rgba(255,255,255,0.04)")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+    >
+      <Icon name={icon} size={15} style={{ color: danger ? "var(--error)" : "var(--muted)" }} />
+      {label}
+    </button>
+  );
+}
+
+function Inner({ task, onClose, isFullscreen, onToggleFullscreen }: { task: Task; onClose: () => void; isFullscreen?: boolean; onToggleFullscreen?: () => void }) {
+  const { toggleChecklist, toggleSubtask, addComment, setBlocked, moveTask, updateTask, deleteTask, duplicateTask } = useStore();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const proj = project(task.projectId);
   const owner = person(task.ownerId);
   const doneCount = task.checklist.filter((c) => c.done).length;
@@ -148,13 +176,85 @@ function Inner({ task, onClose }: { task: Task; onClose: () => void }) {
             <span className="mono" style={{ fontSize: 11, color: "var(--muted-2)" }}>#{task.id.replace(/^t_/, "").toUpperCase()}</span>
           </div>
           <div style={{ display: "flex", gap: 6 }}>
+            {/* Edit toggle */}
             <button
               type="button"
-              aria-label="More"
-              style={{ width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer" }}
+              aria-label={editing ? "Done editing" : "Edit fields"}
+              title={editing ? "Done editing" : "Edit fields"}
+              onClick={() => setEditing(!editing)}
+              style={{
+                width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: 8,
+                border: editing ? "1px solid var(--primary-bright)" : "1px solid var(--border)",
+                background: editing ? "color-mix(in srgb, var(--primary-bright) 16%, transparent)" : "transparent",
+                color: editing ? "var(--primary)" : "var(--muted)",
+                cursor: "pointer",
+                transition: "all var(--dur)",
+              }}
             >
-              <Icon name="more" size={16} />
+              <Icon name="settings" size={14} />
             </button>
+            {/* Expand to full-screen */}
+            {onToggleFullscreen && (
+              <button
+                type="button"
+                aria-label={isFullscreen ? "Collapse" : "Expand"}
+                title={isFullscreen ? "Collapse to drawer" : "Expand full screen"}
+                onClick={onToggleFullscreen}
+                style={{ width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer" }}
+              >
+                <Icon name={isFullscreen ? "chevron-right" : "arrow-up-right"} size={16} />
+              </button>
+            )}
+            {/* More menu */}
+            <div style={{ position: "relative" }}>
+              <button
+                type="button"
+                aria-label="More"
+                onClick={() => setMenuOpen(!menuOpen)}
+                style={{ width: 30, height: 30, display: "grid", placeItems: "center", borderRadius: 8, border: "1px solid var(--border)", background: "transparent", color: "var(--muted)", cursor: "pointer" }}
+              >
+                <Icon name="more" size={16} />
+              </button>
+              {menuOpen && (
+                <>
+                  <div style={{ position: "fixed", inset: 0, zIndex: 100 }} onClick={() => setMenuOpen(false)} />
+                  <div
+                    style={{
+                      position: "absolute", right: 0, top: 36, zIndex: 101,
+                      minWidth: 180, padding: 5, borderRadius: 12,
+                      background: "var(--surface)", border: "1px solid var(--border)",
+                      boxShadow: "var(--shadow-3)",
+                    }}
+                  >
+                    <ActionMenuItem
+                      icon="settings"
+                      label={editing ? "Stop editing" : "Edit all fields"}
+                      onClick={() => { setEditing(!editing); setMenuOpen(false); }}
+                    />
+                    <ActionMenuItem
+                      icon="plus"
+                      label="Duplicate task"
+                      onClick={() => { duplicateTask(task.id); setMenuOpen(false); }}
+                    />
+                    <ActionMenuItem
+                      icon="link"
+                      label="Copy task ID"
+                      onClick={() => {
+                        navigator.clipboard.writeText(task.id).catch(() => {});
+                        setMenuOpen(false);
+                      }}
+                    />
+                    <div style={{ height: 1, background: "var(--border-soft)", margin: "4px 0" }} />
+                    <ActionMenuItem
+                      icon="close"
+                      label="Delete task"
+                      danger
+                      onClick={() => { deleteTask(task.id); onClose(); setMenuOpen(false); }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
             <button
               type="button"
               aria-label="Close"
@@ -226,36 +326,149 @@ function Inner({ task, onClose }: { task: Task; onClose: () => void }) {
           </MetaRow>
 
           <MetaRow icon="user" label="Owner">
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-              <Avatar personId={task.ownerId} size={22} />
-              <span style={{ fontSize: 13, color: "var(--text-soft)" }}>{owner?.fullName}</span>
-            </span>
+            {editing ? (
+              <select
+                value={task.ownerId}
+                onChange={(e) => updateTask(task.id, { ownerId: e.target.value })}
+                style={{
+                  padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border)",
+                  background: "var(--surface)", color: "var(--text-soft)", fontSize: 12.5,
+                  fontFamily: "inherit", cursor: "pointer",
+                }}
+              >
+                {PEOPLE.map((p) => (
+                  <option key={p.id} value={p.id}>{p.fullName}</option>
+                ))}
+              </select>
+            ) : (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+                <Avatar personId={task.ownerId} size={22} />
+                <span style={{ fontSize: 13, color: "var(--text-soft)" }}>{owner?.fullName}</span>
+              </span>
+            )}
           </MetaRow>
 
-          {task.assigneeIds.length > 1 && (
-            <MetaRow icon="users" label="Assignees">
-              {task.assigneeIds.map((id) => (
-                <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 9px 2px 2px", borderRadius: 999, background: "var(--surface)", border: "1px solid var(--border)" }}>
-                  <Avatar personId={id} size={18} />
-                  <span style={{ fontSize: 11.5, color: "var(--text-soft)" }}>{person(id)?.initials}</span>
-                </span>
-              ))}
-            </MetaRow>
-          )}
+          <MetaRow icon="users" label="Assignees">
+            {editing ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {task.assigneeIds.map((id) => (
+                    <span
+                      key={id}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        padding: "2px 8px 2px 2px", borderRadius: 999,
+                        background: "var(--surface)", border: "1px solid var(--border)",
+                      }}
+                    >
+                      <Avatar personId={id} size={18} />
+                      <span style={{ fontSize: 11.5, color: "var(--text-soft)" }}>{person(id)?.initials}</span>
+                      <button
+                        type="button"
+                        onClick={() => updateTask(task.id, { assigneeIds: task.assigneeIds.filter((a) => a !== id) })}
+                        style={{
+                          width: 16, height: 16, display: "grid", placeItems: "center",
+                          borderRadius: "50%", border: "none", background: "transparent",
+                          color: "var(--muted)", cursor: "pointer", fontSize: 11, padding: 0,
+                        }}
+                        aria-label={`Remove ${person(id)?.initials}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value && !task.assigneeIds.includes(e.target.value)) {
+                      updateTask(task.id, { assigneeIds: [...task.assigneeIds, e.target.value] });
+                    }
+                  }}
+                  style={{
+                    padding: "4px 8px", borderRadius: 8, border: "1px solid var(--border)",
+                    background: "var(--surface)", color: "var(--text-soft)", fontSize: 12,
+                    fontFamily: "inherit", cursor: "pointer", width: "auto",
+                  }}
+                >
+                  <option value="">+ Add assignee</option>
+                  {PEOPLE.filter((p) => !task.assigneeIds.includes(p.id)).map((p) => (
+                    <option key={p.id} value={p.id}>{p.fullName}</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              task.assigneeIds.length > 0 ? (
+                task.assigneeIds.map((id) => (
+                  <span key={id} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 9px 2px 2px", borderRadius: 999, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                    <Avatar personId={id} size={18} />
+                    <span style={{ fontSize: 11.5, color: "var(--text-soft)" }}>{person(id)?.initials}</span>
+                  </span>
+                ))
+              ) : (
+                <span style={{ fontSize: 12.5, color: "var(--muted-2)", fontStyle: "italic" }}>None</span>
+              )
+            )}
+          </MetaRow>
 
           <MetaRow icon="flag" label="Priority">
-            <Chip color={PRIORITY_META[task.priority].color}>
-              <Icon name="flag" size={12} />
-              {PRIORITY_META[task.priority].label}
-            </Chip>
+            {editing ? (
+              <select
+                value={task.priority}
+                onChange={(e) => updateTask(task.id, { priority: Number(e.target.value) as Priority })}
+                style={{
+                  padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border)",
+                  background: "var(--surface)", color: "var(--text-soft)", fontSize: 12.5,
+                  fontFamily: "inherit", cursor: "pointer",
+                }}
+              >
+                {([1, 2, 3, 4] as Priority[]).map((p) => (
+                  <option key={p} value={p}>{PRIORITY_META[p].label}</option>
+                ))}
+              </select>
+            ) : (
+              <Chip color={PRIORITY_META[task.priority].color}>
+                <Icon name="flag" size={12} />
+                {PRIORITY_META[task.priority].label}
+              </Chip>
+            )}
           </MetaRow>
 
           <MetaRow icon="calendar" label="Target date">
-            <span style={{ fontSize: 13, color: "var(--text-soft)" }}>{formatDate(task.dueDate)}</span>
+            {editing ? (
+              <input
+                type="date"
+                value={task.dueDate ?? ""}
+                onChange={(e) => updateTask(task.id, { dueDate: e.target.value || null })}
+                style={{
+                  padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border)",
+                  background: "var(--surface)", color: "var(--text-soft)", fontSize: 12.5,
+                  fontFamily: "inherit", cursor: "pointer",
+                }}
+              />
+            ) : (
+              <span style={{ fontSize: 13, color: "var(--text-soft)" }}>{formatDate(task.dueDate)}</span>
+            )}
           </MetaRow>
 
           <MetaRow icon="board" label="Marketplace">
-            <MarketplacePill marketplace={task.marketplace} />
+            {editing ? (
+              <select
+                value={task.marketplace ?? ""}
+                onChange={(e) => updateTask(task.id, { marketplace: (e.target.value || null) as Marketplace | null })}
+                style={{
+                  padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border)",
+                  background: "var(--surface)", color: "var(--text-soft)", fontSize: 12.5,
+                  fontFamily: "inherit", cursor: "pointer",
+                }}
+              >
+                {MARKETPLACE_OPTIONS.map((m) => (
+                  <option key={m ?? "none"} value={m ?? ""}>{m ?? "— None —"}</option>
+                ))}
+              </select>
+            ) : (
+              <MarketplacePill marketplace={task.marketplace} />
+            )}
           </MetaRow>
 
           {task.sku && (
@@ -448,16 +661,23 @@ function Inner({ task, onClose }: { task: Task; onClose: () => void }) {
 export function TaskDetail({ taskId, onClose }: { taskId: string | null; onClose: () => void }) {
   const { tasks } = useStore();
   const task = tasks.find((t) => t.id === taskId) ?? null;
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Reset fullscreen when task changes.
+  useEffect(() => { setIsFullscreen(false); }, [taskId]);
 
   // Close on Escape.
   useEffect(() => {
     if (!taskId) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (isFullscreen) setIsFullscreen(false);
+        else onClose();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [taskId, onClose]);
+  }, [taskId, onClose, isFullscreen]);
 
   return (
     <AnimatePresence>
@@ -473,7 +693,7 @@ export function TaskDetail({ taskId, onClose }: { taskId: string | null; onClose
           />
           <motion.div
             initial={{ x: "100%" }}
-            animate={{ x: 0 }}
+            animate={{ x: 0, width: isFullscreen ? "100vw" : "min(540px, 100vw)" }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 340, damping: 36 }}
             role="dialog"
@@ -485,14 +705,18 @@ export function TaskDetail({ taskId, onClose }: { taskId: string | null; onClose
               top: 0,
               right: 0,
               bottom: 0,
-              width: "min(540px, 100vw)",
               zIndex: 90,
               borderLeft: "1px solid var(--border)",
               background: "var(--glass-2)",
               boxShadow: "var(--shadow-3)",
             }}
           >
-            <Inner task={task} onClose={onClose} />
+            <Inner
+              task={task}
+              onClose={onClose}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+            />
           </motion.div>
         </>
       )}

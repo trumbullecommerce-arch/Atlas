@@ -463,12 +463,37 @@ html[data-mode="light"] .atlas-list-grouphdr:hover { background: rgba(15, 23, 42
   display: none !important;
 }
 
+/* Icon rail: hidden by default. */
+.atlas-icon-rail {
+  display: none !important;
+}
+
+/* Rail flyout backdrop: hidden by default. */
+.atlas-rail-flyout-backdrop {
+  /* AnimatePresence handles show/hide, but we need the base rule for the
+     small-screen override below. */
+}
+
 /* Desktop, "fixed" preference (default): show the rail, hide the hamburger. */
 [data-sidebar="fixed"] .atlas-sidebar-desktop {
   display: block !important;
 }
 [data-sidebar="fixed"] .atlas-mobile-only {
   display: none !important;
+}
+[data-sidebar="fixed"] .atlas-icon-rail {
+  display: none !important;
+}
+
+/* Desktop, "icon-rail" preference: show the narrow icon strip, hide everything else. */
+[data-sidebar="icon-rail"] .atlas-sidebar-desktop {
+  display: none !important;
+}
+[data-sidebar="icon-rail"] .atlas-mobile-only {
+  display: none !important;
+}
+[data-sidebar="icon-rail"] .atlas-icon-rail {
+  display: flex !important;
 }
 
 /* Desktop, "collapsible" preference: hide the rail, reveal the hamburger so the
@@ -478,6 +503,9 @@ html[data-mode="light"] .atlas-list-grouphdr:hover { background: rgba(15, 23, 42
 }
 [data-sidebar="collapsible"] .atlas-mobile-only {
   display: flex !important;
+}
+[data-sidebar="collapsible"] .atlas-icon-rail {
+  display: none !important;
 }
 
 /* ── Small screens: always collapsible, preference is ignored ─────────────── */
@@ -491,6 +519,11 @@ html[data-mode="light"] .atlas-list-grouphdr:hover { background: rgba(15, 23, 42
   [data-sidebar] .atlas-mobile-only,
   .atlas-mobile-only {
     display: flex !important;
+  }
+  /* Icon rail hidden on mobile — too narrow for touch. */
+  [data-sidebar] .atlas-icon-rail,
+  .atlas-icon-rail {
+    display: none !important;
   }
 
   /* Trim the topbar so it doesn't overflow on narrow viewports. */

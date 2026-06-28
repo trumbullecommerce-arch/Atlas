@@ -14,10 +14,14 @@ import {
   type ReactNode,
 } from "react";
 
-export type SidebarMode = "fixed" | "collapsible";
+export type SidebarMode = "fixed" | "collapsible" | "icon-rail";
 
 export interface Prefs {
-  /** "fixed": persistent desktop rail. "collapsible": hamburger-driven drawer. */
+  /**
+   * "fixed": persistent 248px desktop sidebar.
+   * "collapsible": hamburger-driven slide-out drawer.
+   * "icon-rail": narrow ~56px icon strip, always visible.
+   */
   sidebarMode: SidebarMode;
 }
 

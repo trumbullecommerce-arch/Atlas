@@ -155,6 +155,7 @@ function Shell() {
             setSettingsOpen(true);
             setMobileNavOpen(false);
           }}
+          sidebarMode={prefs.sidebarMode}
         />
 
         <div className={styles.main}>

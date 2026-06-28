@@ -1,6 +1,6 @@
-/* Sidebar — desktop rail + mobile drawer */
+/* Sidebar — desktop rail + icon rail + mobile drawer */
 
-/* ── Desktop sidebar ───────────────────────────────────────────────────── */
+/* ── Desktop sidebar (fixed mode) ──────────────────────────────────────── */
 
 .desktop {
   width: 248px;
@@ -11,7 +11,7 @@
   z-index: 30;
 }
 
-/* ── Content layout ────────────────────────────────────────────────────── */
+/* ── Content layout (shared by full rail, flyout, and drawer) ──────────── */
 
 .content {
   display: flex;
@@ -30,6 +30,16 @@
   align-items: center;
   gap: 11px;
   padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+}
+
+.logoClickable {
+  cursor: pointer;
+  border-radius: var(--r);
+  transition: background var(--dur);
+}
+
+.logoClickable:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .logoMark {
@@ -265,7 +275,167 @@
   border-color: var(--border-strong);
 }
 
-/* ── Mobile drawer ─────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   ICON RAIL — narrow 56px always-visible strip
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.iconRail {
+  width: 56px;
+  flex: 0 0 56px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0;
+  gap: var(--space-1);
+  border-right: 1px solid var(--border);
+  background: var(--glass-2);
+  z-index: 31;
+}
+
+/* Logo button in the rail */
+.railLogoBtn {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  border-radius: var(--r);
+  transition: transform var(--dur);
+}
+
+.railLogoBtn:hover {
+  transform: scale(1.06);
+}
+
+.railLogoMark {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r);
+  display: grid;
+  place-items: center;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary-bright) 26%, transparent),
+    color-mix(in srgb, var(--tertiary-deep) 20%, transparent)
+  );
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 0 18px rgba(84, 141, 255, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  color: var(--primary);
+}
+
+.railDivider {
+  width: 28px;
+  height: 1px;
+  background: var(--border-soft);
+  margin: var(--space-2) 0;
+}
+
+/* Navigation icons stack */
+.railNav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.railBtn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--r);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--dur), color var(--dur);
+}
+
+.railBtn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.railBtnActive {
+  background: linear-gradient(
+    135deg,
+    rgba(84, 141, 255, 0.22),
+    rgba(128, 131, 255, 0.10)
+  );
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.railActiveIndicator {
+  position: absolute;
+  left: -8px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: var(--r-pill);
+  background: var(--primary-bright);
+  box-shadow: 0 0 8px var(--primary-bright);
+}
+
+.railIcon {
+  color: var(--muted);
+  transition: color var(--dur);
+}
+
+.railBtn:hover .railIcon {
+  color: var(--text-soft);
+}
+
+.railIconActive {
+  color: var(--primary);
+}
+
+/* Bottom section (settings + avatar) */
+.railBottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-soft);
+  width: 100%;
+}
+
+.railAvatar {
+  display: grid;
+  place-items: center;
+  padding-bottom: var(--space-1);
+}
+
+/* ── Icon Rail flyout overlay ──────────────────────────────────────────── */
+
+.railFlyoutBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.5);
+  backdrop-filter: blur(3px);
+  z-index: 58;
+}
+
+.railFlyout {
+  position: fixed;
+  left: 56px;
+  top: 0;
+  bottom: 0;
+  width: 260px;
+  z-index: 59;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-3);
+  overflow: hidden;
+}
+
+/* ── Mobile / collapsible drawer ───────────────────────────────────────── */
 
 .backdrop {
   position: fixed;
@@ -291,5 +461,13 @@
 /* ── Light-mode overrides ─────────────────────────────────────────────── */
 
 :global(html[data-mode="light"]) .projBtn.active {
+  background: rgba(15, 23, 42, 0.05);
+}
+
+:global(html[data-mode="light"]) .logoClickable:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+:global(html[data-mode="light"]) .railBtn:hover {
   background: rgba(15, 23, 42, 0.05);
 }

@@ -53,6 +53,9 @@ interface StoreValue {
   toggleSubtask: (taskId: string, subId: string) => void;
   addComment: (taskId: string, body: string) => void;
   setBlocked: (taskId: string, blocked: boolean, reason?: string) => void;
+  updateTask: (taskId: string, patch: Partial<Omit<Task, "id">>) => void;
+  deleteTask: (taskId: string) => void;
+  duplicateTask: (taskId: string) => string;
   setAuditStatus: (itemId: string, status: AuditItemStatus) => void;
 }
 
@@ -224,6 +227,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     notify.info(blocked ? "Task blocked" : "Block removed");
   }, []);
 
+  const updateTask = useCallback((taskId: string, patch: Partial<Omit<Task, "id">>) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, ...patch } : t)),
+    );
+    notify.success("Task updated");
+  }, []);
+
+  const deleteTask = useCallback((taskId: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    notify.info("Task deleted");
+  }, []);
+
+  const duplicateTask = useCallback((taskId: string): string => {
+    const newId = uid("t");
+    setTasks((prev) => {
+      const src = prev.find((t) => t.id === taskId);
+      if (!src) return prev;
+      const dup: Task = {
+        ...src,
+        id: newId,
+        title: `${src.title} (copy)`,
+        createdAt: nowIso(),
+        comments: [],
+        activity: [{ id: uid("a"), kind: "created", actorId: ME, text: "duplicated this task", createdAt: nowIso() }],
+      };
+      return [dup, ...prev];
+    });
+    notify.success("Task duplicated");
+    return newId;
+  }, []);
+
   const setAuditStatus = useCallback((itemId: string, status: AuditItemStatus) => {
     setAuditItems((prev) =>
       prev.map((a) =>
@@ -246,9 +280,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       toggleSubtask,
       addComment,
       setBlocked,
+      updateTask,
+      deleteTask,
+      duplicateTask,
       setAuditStatus,
     }),
-    [tasks, auditItems, addTask, moveTask, reorderInColumn, toggleChecklist, toggleSubtask, addComment, setBlocked, setAuditStatus],
+    [tasks, auditItems, addTask, moveTask, reorderInColumn, toggleChecklist, toggleSubtask, addComment, setBlocked, updateTask, deleteTask, duplicateTask, setAuditStatus],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

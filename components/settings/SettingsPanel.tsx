@@ -192,13 +192,20 @@ function Inner({ onClose }: { onClose: () => void }) {
           title="Sidebar display"
           description="Choose how navigation appears on larger screens."
         >
-          <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <OptionCard
               active={prefs.sidebarMode === "fixed"}
               onClick={() => setSidebar("fixed")}
               icon="swimlane"
               title="Fixed rail"
               description="Navigation stays pinned alongside your work."
+            />
+            <OptionCard
+              active={prefs.sidebarMode === "icon-rail"}
+              onClick={() => setSidebar("icon-rail")}
+              icon="grid"
+              title="Icon rail"
+              description="A slim icon strip for quick navigation. Expand for full details."
             />
             <OptionCard
               active={prefs.sidebarMode === "collapsible"}
