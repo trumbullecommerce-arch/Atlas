@@ -1,19 +1,19 @@
 "use client";
 
 /**
- * useTaskLocks — Real-time task editing indicators using Supabase.
+ * useTaskLocks — Real-time task editing indicators using Supabase Broadcast.
  *
- * ARCHITECTURE (dual-channel for reliability):
- * 1. BROADCAST: When a user locks/unlocks a task, they broadcast an explicit
- *    message to all subscribers. This is instant and reliable for live updates.
- * 2. PRESENCE: Used as a persistent state store so that new joiners (or page
- *    refreshes) get the current state of all locks without waiting for a
- *    broadcast. Also handles cleanup when a user disconnects abruptly.
+ * ARCHITECTURE: Pure Broadcast (no Presence — Presence + Broadcast on the same
+ * channel causes WebSocket conflicts where one direction stops receiving).
  *
- * The combination ensures:
- *  - Live updates arrive instantly via broadcast
- *  - State is always correct after refresh via presence sync
- *  - Stale locks are cleaned up when users go offline
+ * How it works:
+ * 1. Each client subscribes to a shared broadcast channel.
+ * 2. When a user opens a task drawer, they broadcast { type: "lock", ... }.
+ * 3. When they close it, they broadcast { type: "unlock", ... }.
+ * 4. On subscribe, the new client broadcasts { type: "roll-call" }.
+ *    All existing clients respond by re-broadcasting their current lock state.
+ *    This gives the new joiner the full picture without needing Presence.
+ * 5. Local state is also applied immediately (no round-trip for your own locks).
  */
 
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -26,22 +26,12 @@ export interface TaskLock {
   initials: string;
   fullName: string;
   hue: number;
-  /** ISO timestamp when the lock was acquired */
   lockedAt: string;
 }
 
-interface TaskLockPayload {
-  type: "lock" | "unlock";
+interface LockMsg {
+  type: "lock" | "unlock" | "roll-call" | "state-reply";
   taskId: string;
-  userId: string;
-  initials: string;
-  fullName: string;
-  hue: number;
-  lockedAt: string;
-}
-
-interface TaskLockPresence {
-  taskId: string | null;
   userId: string;
   initials: string;
   fullName: string;
@@ -59,93 +49,95 @@ export function useTaskLocks(currentUser: {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const userRef = useRef(currentUser);
   userRef.current = currentUser;
+  // Track what task THIS client currently has locked (for roll-call replies)
+  const myLockedTaskRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!currentUser) return;
 
     const supabase = createClient();
 
-    const channel = supabase.channel("atlas:task-locks-v2", {
-      config: { presence: { key: currentUser.userId } },
-    });
-
-    /**
-     * Rebuild locks from Presence state (initial load + safety net).
-     */
-    function rebuildFromPresence() {
-      const state = channel.presenceState<TaskLockPresence>();
-      const nextLocks = new Map<string, TaskLock>();
-
-      for (const key of Object.keys(state)) {
-        const presences = state[key];
-        if (presences && presences.length > 0) {
-          const p = presences[0];
-          if (p.taskId) {
-            nextLocks.set(p.taskId, {
-              taskId: p.taskId,
-              userId: p.userId,
-              initials: p.initials,
-              fullName: p.fullName,
-              hue: p.hue,
-              lockedAt: p.lockedAt,
-            });
-          }
-        }
-      }
-
-      setLocks(nextLocks);
-    }
+    // Use a simple broadcast channel — NO presence config
+    const channel = supabase.channel("atlas:locks-v3");
 
     channel
-      // ── PRESENCE: for initial state + cleanup on disconnect ──
-      .on("presence", { event: "sync" }, rebuildFromPresence)
-      .on("presence", { event: "join" }, rebuildFromPresence)
-      .on("presence", { event: "leave" }, rebuildFromPresence)
-
-      // ── BROADCAST: for instant real-time lock/unlock notifications ──
       .on("broadcast", { event: "task-lock" }, ({ payload }) => {
-        const msg = payload as TaskLockPayload;
-        setLocks((prev) => {
-          const next = new Map(prev);
-          if (msg.type === "lock") {
-            next.set(msg.taskId, {
-              taskId: msg.taskId,
-              userId: msg.userId,
-              initials: msg.initials,
-              fullName: msg.fullName,
-              hue: msg.hue,
-              lockedAt: msg.lockedAt,
+        const msg = payload as LockMsg;
+
+        // Ignore messages from self (we apply local state directly)
+        if (msg.userId === currentUser.userId) return;
+
+        if (msg.type === "lock" || msg.type === "state-reply") {
+          if (msg.taskId) {
+            setLocks((prev) => {
+              const next = new Map(prev);
+              next.set(msg.taskId, {
+                taskId: msg.taskId,
+                userId: msg.userId,
+                initials: msg.initials,
+                fullName: msg.fullName,
+                hue: msg.hue,
+                lockedAt: msg.lockedAt,
+              });
+              return next;
             });
-          } else {
-            // On unlock, remove any lock owned by this user
+          }
+        } else if (msg.type === "unlock") {
+          setLocks((prev) => {
+            const next = new Map(prev);
+            // Remove any lock owned by this user
             for (const [tid, lock] of next) {
               if (lock.userId === msg.userId) {
                 next.delete(tid);
               }
             }
-          }
-          return next;
-        });
-      })
-
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          // Track initial presence (no task locked)
-          await channel.track({
-            taskId: null,
-            userId: currentUser.userId,
-            initials: currentUser.initials,
-            fullName: currentUser.fullName,
-            hue: currentUser.hue,
-            lockedAt: new Date().toISOString(),
+            return next;
           });
+        } else if (msg.type === "roll-call") {
+          // Someone new joined — reply with our current lock if we have one
+          const myTask = myLockedTaskRef.current;
+          const user = userRef.current;
+          if (myTask && user) {
+            channel.send({
+              type: "broadcast",
+              event: "task-lock",
+              payload: {
+                type: "state-reply",
+                taskId: myTask,
+                userId: user.userId,
+                initials: user.initials,
+                fullName: user.fullName,
+                hue: user.hue,
+                lockedAt: new Date().toISOString(),
+              } satisfies LockMsg,
+            });
+          }
+        }
+      })
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          // Ask all existing clients to tell us their lock state
+          setTimeout(() => {
+            channel.send({
+              type: "broadcast",
+              event: "task-lock",
+              payload: {
+                type: "roll-call",
+                taskId: "",
+                userId: currentUser.userId,
+                initials: currentUser.initials,
+                fullName: currentUser.fullName,
+                hue: currentUser.hue,
+                lockedAt: new Date().toISOString(),
+              } satisfies LockMsg,
+            });
+          }, 300); // Small delay to ensure other clients' listeners are active
         }
       });
 
     channelRef.current = channel;
 
     return () => {
-      channel.untrack();
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
@@ -156,31 +148,35 @@ export function useTaskLocks(currentUser: {
     const user = userRef.current;
     if (!channelRef.current || !user) return;
 
-    const payload: TaskLockPayload = {
-      type: "lock",
-      taskId,
-      userId: user.userId,
-      initials: user.initials,
-      fullName: user.fullName,
-      hue: user.hue,
-      lockedAt: new Date().toISOString(),
-    };
+    myLockedTaskRef.current = taskId;
 
-    // 1. Broadcast to all other clients (instant real-time update)
-    await channelRef.current.send({
-      type: "broadcast",
-      event: "task-lock",
-      payload,
+    // Apply locally immediately (don't wait for round-trip)
+    setLocks((prev) => {
+      const next = new Map(prev);
+      next.set(taskId, {
+        taskId,
+        userId: user.userId,
+        initials: user.initials,
+        fullName: user.fullName,
+        hue: user.hue,
+        lockedAt: new Date().toISOString(),
+      });
+      return next;
     });
 
-    // 2. Update presence state (persists for new joiners / refreshers)
-    await channelRef.current.track({
-      taskId,
-      userId: user.userId,
-      initials: user.initials,
-      fullName: user.fullName,
-      hue: user.hue,
-      lockedAt: payload.lockedAt,
+    // Broadcast to other clients
+    channelRef.current.send({
+      type: "broadcast",
+      event: "task-lock",
+      payload: {
+        type: "lock",
+        taskId,
+        userId: user.userId,
+        initials: user.initials,
+        fullName: user.fullName,
+        hue: user.hue,
+        lockedAt: new Date().toISOString(),
+      } satisfies LockMsg,
     });
   }, []);
 
@@ -189,31 +185,31 @@ export function useTaskLocks(currentUser: {
     const user = userRef.current;
     if (!channelRef.current || !user) return;
 
-    const payload: TaskLockPayload = {
-      type: "unlock",
-      taskId: "",
-      userId: user.userId,
-      initials: user.initials,
-      fullName: user.fullName,
-      hue: user.hue,
-      lockedAt: new Date().toISOString(),
-    };
+    const prevTask = myLockedTaskRef.current;
+    myLockedTaskRef.current = null;
 
-    // 1. Broadcast unlock to all clients (instant)
-    await channelRef.current.send({
+    // Apply locally immediately
+    if (prevTask) {
+      setLocks((prev) => {
+        const next = new Map(prev);
+        next.delete(prevTask);
+        return next;
+      });
+    }
+
+    // Broadcast to other clients
+    channelRef.current.send({
       type: "broadcast",
       event: "task-lock",
-      payload,
-    });
-
-    // 2. Clear presence state
-    await channelRef.current.track({
-      taskId: null,
-      userId: user.userId,
-      initials: user.initials,
-      fullName: user.fullName,
-      hue: user.hue,
-      lockedAt: payload.lockedAt,
+      payload: {
+        type: "unlock",
+        taskId: "",
+        userId: user.userId,
+        initials: user.initials,
+        fullName: user.fullName,
+        hue: user.hue,
+        lockedAt: new Date().toISOString(),
+      } satisfies LockMsg,
     });
   }, []);
 
