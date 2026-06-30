@@ -1,13 +1,19 @@
 "use client";
 
 /**
- * useTaskLocks — Supabase Realtime Presence for task editing indicators.
- * When a user opens the task detail drawer, they broadcast a "lock" on that task.
- * Other users see an animated glow around the card in the locked user's color.
- * When the drawer closes, the lock is released.
+ * useTaskLocks — Real-time task editing indicators using Supabase.
  *
- * This hook listens to ALL three presence events (sync, join, leave) to ensure
- * real-time updates are captured regardless of Supabase SDK event dispatching.
+ * ARCHITECTURE (dual-channel for reliability):
+ * 1. BROADCAST: When a user locks/unlocks a task, they broadcast an explicit
+ *    message to all subscribers. This is instant and reliable for live updates.
+ * 2. PRESENCE: Used as a persistent state store so that new joiners (or page
+ *    refreshes) get the current state of all locks without waiting for a
+ *    broadcast. Also handles cleanup when a user disconnects abruptly.
+ *
+ * The combination ensures:
+ *  - Live updates arrive instantly via broadcast
+ *  - State is always correct after refresh via presence sync
+ *  - Stale locks are cleaned up when users go offline
  */
 
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -24,6 +30,16 @@ export interface TaskLock {
   lockedAt: string;
 }
 
+interface TaskLockPayload {
+  type: "lock" | "unlock";
+  taskId: string;
+  userId: string;
+  initials: string;
+  fullName: string;
+  hue: number;
+  lockedAt: string;
+}
+
 interface TaskLockPresence {
   taskId: string | null;
   userId: string;
@@ -33,13 +49,6 @@ interface TaskLockPresence {
   lockedAt: string;
 }
 
-/**
- * Returns a Map of taskId → TaskLock for all currently locked tasks,
- * plus functions to lock/unlock the current user's task.
- *
- * @param currentUser — Info about the current user for broadcasting.
- *                      Pass `null` if not authenticated.
- */
 export function useTaskLocks(currentUser: {
   userId: string;
   initials: string;
@@ -48,8 +57,6 @@ export function useTaskLocks(currentUser: {
 } | null) {
   const [locks, setLocks] = useState<Map<string, TaskLock>>(new Map());
   const channelRef = useRef<RealtimeChannel | null>(null);
-  // Store currentUser in a ref so callbacks always see the latest value
-  // without needing it in the effect deps (which would cause reconnects).
   const userRef = useRef(currentUser);
   userRef.current = currentUser;
 
@@ -58,15 +65,14 @@ export function useTaskLocks(currentUser: {
 
     const supabase = createClient();
 
-    const channel = supabase.channel("atlas:task-locks", {
+    const channel = supabase.channel("atlas:task-locks-v2", {
       config: { presence: { key: currentUser.userId } },
     });
 
     /**
-     * Rebuild the locks map from the full presence state.
-     * Called on sync, join, AND leave events for maximum reliability.
+     * Rebuild locks from Presence state (initial load + safety net).
      */
-    function rebuildLocks() {
+    function rebuildFromPresence() {
       const state = channel.presenceState<TaskLockPresence>();
       const nextLocks = new Map<string, TaskLock>();
 
@@ -74,7 +80,6 @@ export function useTaskLocks(currentUser: {
         const presences = state[key];
         if (presences && presences.length > 0) {
           const p = presences[0];
-          // Only add if the user actually has a task open
           if (p.taskId) {
             nextLocks.set(p.taskId, {
               taskId: p.taskId,
@@ -92,16 +97,40 @@ export function useTaskLocks(currentUser: {
     }
 
     channel
-      // Listen to ALL presence events for real-time reliability.
-      // `sync` fires when the full state is in sync.
-      // `join` fires when a user joins or updates their tracked state.
-      // `leave` fires when a user leaves or clears their tracked state.
-      .on("presence", { event: "sync" }, rebuildLocks)
-      .on("presence", { event: "join" }, rebuildLocks)
-      .on("presence", { event: "leave" }, rebuildLocks)
+      // ── PRESENCE: for initial state + cleanup on disconnect ──
+      .on("presence", { event: "sync" }, rebuildFromPresence)
+      .on("presence", { event: "join" }, rebuildFromPresence)
+      .on("presence", { event: "leave" }, rebuildFromPresence)
+
+      // ── BROADCAST: for instant real-time lock/unlock notifications ──
+      .on("broadcast", { event: "task-lock" }, ({ payload }) => {
+        const msg = payload as TaskLockPayload;
+        setLocks((prev) => {
+          const next = new Map(prev);
+          if (msg.type === "lock") {
+            next.set(msg.taskId, {
+              taskId: msg.taskId,
+              userId: msg.userId,
+              initials: msg.initials,
+              fullName: msg.fullName,
+              hue: msg.hue,
+              lockedAt: msg.lockedAt,
+            });
+          } else {
+            // On unlock, remove any lock owned by this user
+            for (const [tid, lock] of next) {
+              if (lock.userId === msg.userId) {
+                next.delete(tid);
+              }
+            }
+          }
+          return next;
+        });
+      })
+
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
-          // Start with no task locked
+          // Track initial presence (no task locked)
           await channel.track({
             taskId: null,
             userId: currentUser.userId,
@@ -123,33 +152,68 @@ export function useTaskLocks(currentUser: {
   }, [currentUser?.userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Call when the user opens a task's detail drawer. */
-  const lockTask = useCallback(
-    async (taskId: string) => {
-      const user = userRef.current;
-      if (!channelRef.current || !user) return;
-      await channelRef.current.track({
-        taskId,
-        userId: user.userId,
-        initials: user.initials,
-        fullName: user.fullName,
-        hue: user.hue,
-        lockedAt: new Date().toISOString(),
-      });
-    },
-    [],
-  );
+  const lockTask = useCallback(async (taskId: string) => {
+    const user = userRef.current;
+    if (!channelRef.current || !user) return;
+
+    const payload: TaskLockPayload = {
+      type: "lock",
+      taskId,
+      userId: user.userId,
+      initials: user.initials,
+      fullName: user.fullName,
+      hue: user.hue,
+      lockedAt: new Date().toISOString(),
+    };
+
+    // 1. Broadcast to all other clients (instant real-time update)
+    await channelRef.current.send({
+      type: "broadcast",
+      event: "task-lock",
+      payload,
+    });
+
+    // 2. Update presence state (persists for new joiners / refreshers)
+    await channelRef.current.track({
+      taskId,
+      userId: user.userId,
+      initials: user.initials,
+      fullName: user.fullName,
+      hue: user.hue,
+      lockedAt: payload.lockedAt,
+    });
+  }, []);
 
   /** Call when the user closes the task detail drawer. */
   const unlockTask = useCallback(async () => {
     const user = userRef.current;
     if (!channelRef.current || !user) return;
+
+    const payload: TaskLockPayload = {
+      type: "unlock",
+      taskId: "",
+      userId: user.userId,
+      initials: user.initials,
+      fullName: user.fullName,
+      hue: user.hue,
+      lockedAt: new Date().toISOString(),
+    };
+
+    // 1. Broadcast unlock to all clients (instant)
+    await channelRef.current.send({
+      type: "broadcast",
+      event: "task-lock",
+      payload,
+    });
+
+    // 2. Clear presence state
     await channelRef.current.track({
       taskId: null,
       userId: user.userId,
       initials: user.initials,
       fullName: user.fullName,
       hue: user.hue,
-      lockedAt: new Date().toISOString(),
+      lockedAt: payload.lockedAt,
     });
   }, []);
 
