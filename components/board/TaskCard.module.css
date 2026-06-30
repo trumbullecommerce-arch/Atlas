@@ -138,6 +138,7 @@
 /* ── Task Lock — editing indicator ─────────────────────────────────────── */
 
 .locked {
+  overflow: visible;
   border-color: hsl(var(--lock-hue, 212) 70% 55% / 0.5);
   box-shadow:
     0 0 0 1px hsl(var(--lock-hue, 212) 70% 55% / 0.3),

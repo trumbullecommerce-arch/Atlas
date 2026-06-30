@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { STATUSES, PROJECTS, person, project } from "@/lib/seed";
 import { daysUntil, dueLabel, dueState } from "@/lib/format";
 import type { Task } from "@/lib/types";
+import type { TaskLock } from "@/lib/supabase/task-locks";
 import { Icon } from "@/components/ui/Icon";
 import { Avatar, MarketplacePill, PriorityFlag } from "@/components/ui/Primitives";
 import styles from "./List.module.css";
@@ -31,24 +32,41 @@ const STATUS_GROUPS: { key: string; label: string; color: string }[] = [
   ...STATUSES.filter((s) => s.isDone).map((s) => ({ key: s.key, label: s.name, color: s.color })),
 ];
 
-function Row({ task, onOpen }: { task: Task; onOpen: () => void }) {
+function Row({ task, onOpen, lock }: { task: Task; onOpen: () => void; lock?: TaskLock | null }) {
   const proj = project(task.projectId);
   const owner = person(task.ownerId);
   const isDone = task.statusKey === "done";
   const ds = dueState(task.dueDate, isDone);
   const doneChecks = task.checklist.filter((c) => c.done).length;
 
+  const rowClass = [
+    "atlas-list-row",
+    styles.row,
+    task.isBlocked ? styles.rowBlocked : "",
+    lock ? styles.rowLocked : "",
+  ].filter(Boolean).join(" ");
+
+  const lockStyle = lock ? { "--lock-hue": String(lock.hue) } as React.CSSProperties : undefined;
+
   return (
     <motion.button
       type="button"
       onClick={onOpen}
-      className={`atlas-list-row ${styles.row} ${task.isBlocked ? styles.rowBlocked : ""}`}
+      className={rowClass}
+      style={lockStyle}
       layout
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
     >
+      {/* Lock indicator */}
+      {lock && (
+        <span className={styles.lockBubble} title={`${lock.fullName} is editing`}>
+          {lock.initials}
+        </span>
+      )}
+
       {/* priority dot */}
       <span className={styles.priorityCell}>
         <PriorityFlag priority={task.priority} />
@@ -127,6 +145,8 @@ function GroupSection({
   onToggle,
   onOpen,
   sectionRef,
+  taskLocks,
+  currentUserId,
 }: {
   group: { key: string; label: string; color: string; tasks: Task[] };
   groupBy: GroupBy;
@@ -134,6 +154,8 @@ function GroupSection({
   onToggle: () => void;
   onOpen: (id: string) => void;
   sectionRef?: (el: HTMLDivElement | null) => void;
+  taskLocks?: Map<string, TaskLock>;
+  currentUserId?: string | null;
 }) {
   const dotShape = group.key === "blocked" || groupBy === "status" ? styles.groupDotStatus : styles.groupDotProject;
 
@@ -176,9 +198,11 @@ function GroupSection({
               {/* Rows glide (layout) and fade on mount/unmount so re-grouping or
                   filtering animates rather than snapping. */}
               <AnimatePresence initial={false}>
-                {group.tasks.map((t) => (
-                  <Row key={t.id} task={t} onOpen={() => onOpen(t.id)} />
-                ))}
+                {group.tasks.map((t) => {
+                  const rawLock = taskLocks?.get(t.id);
+                  const lock = rawLock && rawLock.userId !== currentUserId ? rawLock : null;
+                  return <Row key={t.id} task={t} onOpen={() => onOpen(t.id)} lock={lock} />;
+                })}
               </AnimatePresence>
             </div>
           </motion.div>
@@ -193,11 +217,15 @@ export function List({
   onOpen,
   listFocus,
   clearFocus,
+  taskLocks,
+  currentUserId,
 }: {
   tasks: Task[];
   onOpen: (id: string) => void;
   listFocus?: string | null;
   clearFocus?: () => void;
+  taskLocks?: Map<string, TaskLock>;
+  currentUserId?: string | null;
 }) {
   const [groupBy, setGroupBy] = useState<GroupBy>("status");
   // Per-group collapsed state, keyed by group key. Absent = expanded (default).
@@ -297,6 +325,8 @@ export function List({
             sectionRef={(el) => {
               sectionRefs.current[g.key] = el;
             }}
+            taskLocks={taskLocks}
+            currentUserId={currentUserId}
           />
         ))}
       </div>

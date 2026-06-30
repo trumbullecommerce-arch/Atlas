@@ -164,6 +164,7 @@
 /* ── Row ───────────────────────────────────────────────────────────────── */
 
 .row {
+  position: relative;
   display: grid;
   grid-template-columns: 26px minmax(0, 1fr) 130px 96px 92px 110px;
   align-items: center;
@@ -211,6 +212,34 @@
   background: hsl(var(--lock-hue, 212) 40% 15% / 0.8);
   border: 1px solid hsl(var(--lock-hue, 212) 50% 30% / 0.4);
   white-space: nowrap;
+}
+
+.lockBubble {
+  position: absolute;
+  top: -6px;
+  left: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.02em;
+  z-index: 3;
+  background: linear-gradient(
+    135deg,
+    hsl(var(--lock-hue, 212) 72% 52%),
+    hsl(var(--lock-hue, 212) 60% 42%)
+  );
+  box-shadow: 0 2px 8px -2px hsl(var(--lock-hue, 212) 70% 50% / 0.5);
+  animation: bubblePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes bubblePop {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
 }
 
 /* ── Row cells ─────────────────────────────────────────────────────────── */

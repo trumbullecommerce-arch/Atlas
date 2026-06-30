@@ -232,6 +232,13 @@ function Shell() {
             onOpenMobileNav={() => setMobileNavOpen(true)}
             projectName={activeProjectName}
             onlineUsers={onlineUsers}
+            tasks={tasks}
+            onOpenTask={openTask}
+            onNavigateAndOpen={(targetView, taskId) => {
+              navigateView(targetView);
+              setMobileNavOpen(false);
+              openTask(taskId);
+            }}
           />
 
           {/* Scrolling content region */}
@@ -266,6 +273,8 @@ function Shell() {
                     onOpen={openTask}
                     listFocus={listFocus}
                     clearFocus={() => setListFocus(null)}
+                    taskLocks={taskLocks}
+                    currentUserId={presenceUser?.userId ?? null}
                   />
                 )}
                 {view === "calendar" && <Calendar tasks={filteredTasks} onOpen={openTask} />}

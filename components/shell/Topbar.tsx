@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { PEOPLE } from "@/lib/seed";
 import type { PresenceUser } from "@/lib/supabase/presence";
 import { MARKETPLACE_META } from "@/lib/format";
-import type { Marketplace, ScopeFilter, ViewKey } from "@/lib/types";
+import type { Marketplace, ScopeFilter, Task, ViewKey } from "@/lib/types";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { Avatar, IconButton } from "@/components/ui/Primitives";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { SearchDropdown } from "@/components/shell/SearchDropdown";
 
 const VIEW_TITLES: Record<ViewKey, { title: string; sub: string }> = {
   dashboard: { title: "Dashboard", sub: "Cross-project health across all your channels" },
@@ -298,6 +299,9 @@ export function Topbar({
   onOpenMobileNav,
   projectName,
   onlineUsers,
+  tasks,
+  onOpenTask,
+  onNavigateAndOpen,
 }: {
   view: ViewKey;
   search: string;
@@ -311,6 +315,12 @@ export function Topbar({
   projectName: string | null;
   /** Online users from Supabase Presence. Falls back to seed data if empty. */
   onlineUsers?: PresenceUser[];
+  /** All tasks for global search */
+  tasks?: Task[];
+  /** Open task in detail drawer */
+  onOpenTask?: (id: string) => void;
+  /** Navigate to a view and open a task */
+  onNavigateAndOpen?: (view: ViewKey, taskId: string) => void;
 }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const meta = VIEW_TITLES[view];
@@ -415,6 +425,16 @@ export function Topbar({
             e.currentTarget.style.boxShadow = "none";
           }}
         />
+        {tasks && onOpenTask && onNavigateAndOpen && (
+          <SearchDropdown
+            search={search}
+            tasks={tasks}
+            view={view}
+            onOpenTask={onOpenTask}
+            onNavigateAndOpen={onNavigateAndOpen}
+            onClose={() => setSearch("")}
+          />
+        )}
       </div>
 
       {/* Assignment-scope filter (everyone / mine / involving me) */}
