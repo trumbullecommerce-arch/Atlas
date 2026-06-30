@@ -28,6 +28,7 @@ import { AtlasToaster } from "@/components/ui/Toaster";
 import { CommandPalette } from "@/components/ui/CommandPalette";
 import { useShortcuts, ShortcutsPanel } from "@/lib/shortcuts";
 import { HelpPanel, HelpFab } from "@/components/ui/HelpHub";
+import { LogoutModal } from "@/components/ui/LogoutModal";
 import { Dashboard } from "@/components/views/Dashboard";
 import { List } from "@/components/views/List";
 import { Audits } from "@/components/views/Audits";
@@ -91,6 +92,7 @@ function Shell() {
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
   // When the dashboard routes into the List focused on a status, this holds the
   // status key so the List can expand + scroll that group into view (see List C).
   const [listFocus, setListFocus] = useState<string | null>(null);
@@ -202,6 +204,7 @@ function Shell() {
           }}
           sidebarMode={prefs.sidebarMode}
           onOpenTask={openTask}
+          onLogout={() => setLogoutOpen(true)}
         />
 
         <div className={styles.main}>
@@ -296,6 +299,8 @@ function Shell() {
 
       <HelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} currentView={view} />
       <HelpFab onClick={() => setHelpOpen(true)} />
+
+      <LogoutModal open={logoutOpen} onClose={() => setLogoutOpen(false)} />
     </div>
   );
 }

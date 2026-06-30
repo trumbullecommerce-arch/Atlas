@@ -95,6 +95,7 @@ export function SidebarContent({
   onOpenSettings,
   onClose,
   onOpenTask,
+  onLogout,
 }: {
   view: ViewKey;
   setView: (v: ViewKey) => void;
@@ -104,6 +105,7 @@ export function SidebarContent({
   /** When provided, clicking the logo toggles the drawer closed. */
   onClose?: () => void;
   onOpenTask?: (id: string) => void;
+  onLogout?: () => void;
 }) {
   const { tasks } = useStore();
   const me = person(ME);
@@ -204,6 +206,16 @@ export function SidebarContent({
 
       {/* User / settings */}
       <div className={styles.userSection}>
+        {onLogout && (
+          <button
+            type="button"
+            onClick={onLogout}
+            className={styles.logoutBtn}
+          >
+            <Icon name="logout" size={14} />
+            Sign out
+          </button>
+        )}
         <div className={styles.userCard}>
           <Avatar personId={ME} size={32} ring />
           <div className={styles.userInfo}>
@@ -311,6 +323,7 @@ export function Sidebar(props: {
   onOpenSettings: () => void;
   sidebarMode: SidebarMode;
   onOpenTask?: (id: string) => void;
+  onLogout?: () => void;
 }) {
   // State for the icon-rail flyout expansion
   const [railExpanded, setRailExpanded] = useState(false);

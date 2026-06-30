@@ -1,0 +1,191 @@
+/* LogoutModal — full-screen confirmation overlay */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ── Card ──────────────────────────────────────────────────────────────── */
+
+.card {
+  position: relative;
+  z-index: 1;
+  width: min(400px, 100%);
+  padding: 40px 36px 32px;
+  border-radius: 20px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-top-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 32px 80px -16px rgba(0, 0, 0, 0.6),
+    0 8px 24px -8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  text-align: center;
+}
+
+/* ── Icon ──────────────────────────────────────────────────────────────── */
+
+.iconWrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--error);
+}
+
+.goodbyeIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, rgba(78, 222, 163, 0.15), rgba(78, 222, 163, 0.05));
+  border: 1px solid rgba(78, 222, 163, 0.2);
+  color: var(--secondary);
+  animation: pulseGoodbye 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseGoodbye {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(78, 222, 163, 0.2); }
+  50% { box-shadow: 0 0 0 10px rgba(78, 222, 163, 0); }
+}
+
+/* ── Text ──────────────────────────────────────────────────────────────── */
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+}
+
+.subtitle {
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 28px;
+}
+
+/* ── Actions ───────────────────────────────────────────────────────────── */
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.cancelBtn {
+  flex: 1;
+  height: 44px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur), border-color var(--dur);
+}
+
+.cancelBtn:hover {
+  background: var(--surface-high);
+  border-color: var(--border-strong);
+}
+
+.logoutBtn {
+  flex: 1;
+  height: 44px;
+  border-radius: var(--r);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-top-color: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(180deg, #ef4444, #dc2626);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 8px 24px -10px rgba(239, 68, 68, 0.6);
+  transition: box-shadow var(--dur), transform var(--dur);
+}
+
+.logoutBtn:hover {
+  box-shadow: 0 10px 30px -10px rgba(239, 68, 68, 0.8);
+  transform: translateY(-1px);
+}
+
+.logoutBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 16px -8px rgba(239, 68, 68, 0.4);
+}
+
+.logoutBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Spinner ───────────────────────────────────────────────────────────── */
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Progress bar (goodbye phase) ──────────────────────────────────────── */
+
+.progressBar {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--secondary), color-mix(in srgb, var(--secondary) 70%, var(--primary-bright)));
+}
+
+/* ── Light mode ────────────────────────────────────────────────────────── */
+
+:global(html[data-mode="light"]) .card {
+  background: #fff;
+  box-shadow:
+    0 32px 80px -16px rgba(0, 0, 0, 0.1),
+    0 8px 24px -8px rgba(0, 0, 0, 0.06);
+}
+
+:global(html[data-mode="light"]) .backdrop {
+  background: rgba(255, 255, 255, 0.5);
+}
