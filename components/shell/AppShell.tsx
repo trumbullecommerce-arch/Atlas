@@ -11,7 +11,7 @@ import styles from "./AppShell.module.css";
 // Plus the ambient `.fx` background and the right-side TaskDetail slide-over.
 // `body { overflow:hidden }` (globals.css) means this owns its own scrolling.
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { StoreProvider, useStore } from "@/lib/store";
@@ -68,11 +68,21 @@ function Shell() {
   const { tasks } = useStore();
   const { prefs, setPref } = usePrefs();
 
-  const [view, setViewRaw] = useState<ViewKey>(prefs.defaultView ?? "dashboard");
+  // Restore the view from the current session (survives refresh) or fall back
+  // to the user's preferred default landing page.
+  const [view, setViewRaw] = useState<ViewKey>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("atlas-current-view") as ViewKey | null;
+      if (saved) return saved;
+    }
+    return prefs.defaultView ?? "dashboard";
+  });
 
   // Navigate with the native View Transitions API for GPU-composited cross-fades.
   // Falls back to instant state update if the browser doesn't support it.
+  // Also persists the view to sessionStorage so refreshes restore it.
   const navigateView = useCallback((v: ViewKey) => {
+    try { sessionStorage.setItem("atlas-current-view", v); } catch { /* */ }
     if (document.startViewTransition) {
       document.startViewTransition(() => {
         flushSync(() => setViewRaw(v));
@@ -137,7 +147,7 @@ function Shell() {
     onClosePanel: () => {
       if (cmdPaletteOpen) { setCmdPaletteOpen(false); return; }
       if (shortcutsOpen) { setShortcutsOpen(false); return; }
-      if (selectedTaskId) { setSelectedTaskId(null); return; }
+      if (selectedTaskId) { closeTask(); return; }
       if (newTaskOpen) { setNewTaskOpen(false); return; }
       if (settingsOpen) { setSettingsOpen(false); return; }
     },
@@ -191,6 +201,20 @@ function Shell() {
     setSelectedTaskId(null);
     unlockTask();
   }
+
+  // Safety net: whenever the drawer closes (selectedTaskId → null), ensure
+  // the lock is released. Also clean up on tab close / navigation.
+  useEffect(() => {
+    if (!selectedTaskId) {
+      unlockTask();
+    }
+  }, [selectedTaskId, unlockTask]);
+
+  useEffect(() => {
+    const handleUnload = () => unlockTask();
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, [unlockTask]);
 
   return (
     // data-sidebar drives whether the persistent rail or the hamburger shows on
