@@ -66,7 +66,7 @@ function matchesSearch(t: Task, q: string): boolean {
 
 function Shell() {
   const { tasks } = useStore();
-  const { prefs } = usePrefs();
+  const { prefs, setPref } = usePrefs();
 
   const [view, setViewRaw] = useState<ViewKey>("dashboard");
 
@@ -298,10 +298,8 @@ function Shell() {
         onOpenTask={(id) => setSelectedTaskId(id)}
         onNewTask={() => setNewTaskOpen(true)}
         onToggleTheme={() => {
-          const el = document.documentElement;
-          const next = el.dataset.mode === 'light' ? 'dark' : 'light';
-          el.dataset.mode = next;
-          localStorage.setItem('atlas-theme', next);
+          const next = prefs.theme === "dark" ? "light" : "dark";
+          setPref("theme", next);
         }}
         onOpenSettings={() => setSettingsOpen(true)}
         onProjectFilter={setProjectFilter}

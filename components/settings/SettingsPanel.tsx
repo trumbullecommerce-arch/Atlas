@@ -6,12 +6,12 @@
 //   • Sidebar display mode (fixed rail vs collapsible drawer)
 //   • Theme (light / dark)
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { usePrefs, type SidebarMode } from "@/lib/prefs";
+import { usePrefs, type SidebarMode, type ThemeMode } from "@/lib/prefs";
 import { Icon, type IconName } from "@/components/ui/Icon";
 
-type Mode = "dark" | "light";
+type Mode = ThemeMode;
 
 function Section({
   icon,
@@ -119,22 +119,9 @@ function OptionCard({
 
 function Inner({ onClose }: { onClose: () => void }) {
   const { prefs, setPref } = usePrefs();
-  const [mode, setMode] = useState<Mode>("dark");
-
-  // Sync the local theme indicator with whatever the no-flash loader applied.
-  useEffect(() => {
-    const current = (document.documentElement.dataset.mode as Mode) || "dark";
-    setMode(current);
-  }, []);
 
   function setTheme(next: Mode) {
-    setMode(next);
-    document.documentElement.dataset.mode = next;
-    try {
-      localStorage.setItem("atlas-theme", next);
-    } catch {
-      /* ignore */
-    }
+    setPref("theme", next);
   }
 
   function setSidebar(next: SidebarMode) {
@@ -223,14 +210,14 @@ function Inner({ onClose }: { onClose: () => void }) {
         <Section icon="sparkle" title="Appearance" description="Switch between light and dark.">
           <div style={{ display: "flex", gap: 12 }}>
             <OptionCard
-              active={mode === "dark"}
+              active={prefs.theme === "dark"}
               onClick={() => setTheme("dark")}
               icon="logo"
               title="Dark"
               description="The default midnight command center."
             />
             <OptionCard
-              active={mode === "light"}
+              active={prefs.theme === "light"}
               onClick={() => setTheme("light")}
               icon="target"
               title="Light"

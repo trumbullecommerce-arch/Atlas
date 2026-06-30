@@ -1,29 +1,16 @@
 "use client";
 
-// Light / dark toggle. Reads the mode set by the no-flash loader in layout.tsx,
-// flips `html[data-mode]`, and persists the choice to localStorage.
+// Light / dark toggle. Now uses the unified prefs system so the choice
+// persists per-user (localStorage + Supabase user_metadata).
 
-import { useEffect, useState } from "react";
-
-type Mode = "dark" | "light";
+import { usePrefs } from "@/lib/prefs";
 
 export function ThemeToggle() {
-  const [mode, setMode] = useState<Mode>("dark");
-
-  useEffect(() => {
-    const current = (document.documentElement.dataset.mode as Mode) || "dark";
-    setMode(current);
-  }, []);
+  const { prefs, setPref } = usePrefs();
+  const mode = prefs.theme;
 
   function toggle() {
-    const next: Mode = mode === "dark" ? "light" : "dark";
-    setMode(next);
-    document.documentElement.dataset.mode = next;
-    try {
-      localStorage.setItem("atlas-theme", next);
-    } catch {
-      /* ignore */
-    }
+    setPref("theme", mode === "dark" ? "light" : "dark");
   }
 
   return (
