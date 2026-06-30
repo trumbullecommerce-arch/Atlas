@@ -17,6 +17,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { StoreProvider, useStore } from "@/lib/store";
 import { PrefsProvider, usePrefs } from "@/lib/prefs";
 import { ME, PROJECTS, project } from "@/lib/seed";
+import { useAuth, AuthProvider } from "@/lib/auth-context";
 import type { Marketplace, ScopeFilter, Task, ViewKey } from "@/lib/types";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { Topbar } from "@/components/shell/Topbar";
@@ -98,23 +99,34 @@ function Shell() {
   const [listFocus, setListFocus] = useState<string | null>(null);
 
   // ── Presence & Task Locks ───────────────────────────────────────────────
-  // Build the current user's presence info from seed data.
-  // Once real auth is wired, this will come from the Supabase session.
-  const currentUser = useMemo<PresenceUser | null>(() => {
-    const me = seedPerson(ME);
-    if (!me) return null;
+  // Build the current user's presence info from the auth session.
+  const { currentUser: authUser } = useAuth();
+  const meId = authUser?.id ?? ME; // fallback to seed ME if not logged in
+
+  const presenceUser = useMemo<PresenceUser | null>(() => {
+    if (!authUser) {
+      const me = seedPerson(ME);
+      if (!me) return null;
+      return {
+        userId: me.id,
+        initials: me.initials,
+        fullName: me.fullName,
+        hue: me.hue,
+        joinedAt: new Date().toISOString(),
+      };
+    }
     return {
-      userId: me.id,
-      initials: me.initials,
-      fullName: me.fullName,
-      hue: me.hue,
+      userId: authUser.id,
+      initials: authUser.initials,
+      fullName: authUser.fullName,
+      hue: authUser.hue,
       joinedAt: new Date().toISOString(),
     };
-  }, []);
+  }, [authUser]);
 
-  const onlineUsers = usePresence(currentUser);
+  const onlineUsers = usePresence(presenceUser);
   const { locks: taskLocks, lockTask, unlockTask } = useTaskLocks(
-    currentUser ? { userId: currentUser.userId, initials: currentUser.initials, fullName: currentUser.fullName, hue: currentUser.hue } : null,
+    presenceUser ? { userId: presenceUser.userId, initials: presenceUser.initials, fullName: presenceUser.fullName, hue: presenceUser.hue } : null,
   );
 
   // Keyboard shortcuts
@@ -140,21 +152,21 @@ function Shell() {
   // The dashboard and audits views intentionally ignore these (they're org-wide
   // / audit-specific), but the board, list and timeline all share this set.
   const involvingProjects = useMemo(() => {
-    // Projects with at least one task assigned to ME (owner or assignee).
+    // Projects with at least one task assigned to the current user (owner or assignee).
     const ids = new Set<string>();
     for (const t of tasks) {
-      if (t.ownerId === ME || t.assigneeIds.includes(ME)) ids.add(t.projectId);
+      if (t.ownerId === meId || t.assigneeIds.includes(meId)) ids.add(t.projectId);
     }
     return ids;
-  }, [tasks]);
+  }, [tasks, meId]);
 
   const matchesScope = useCallback(
     (t: Task): boolean => {
-      if (scopeFilter === "mine") return t.ownerId === ME || t.assigneeIds.includes(ME);
+      if (scopeFilter === "mine") return t.ownerId === meId || t.assigneeIds.includes(meId);
       if (scopeFilter === "involving") return involvingProjects.has(t.projectId);
       return true;
     },
-    [scopeFilter, involvingProjects],
+    [scopeFilter, involvingProjects, meId],
   );
 
   const filteredTasks = useMemo(() => {
@@ -247,7 +259,7 @@ function Shell() {
                     }}
                   />
                 )}
-                {view === "board" && <Board tasks={filteredTasks} onOpen={openTask} taskLocks={taskLocks} currentUserId={currentUser?.userId ?? null} />}
+                {view === "board" && <Board tasks={filteredTasks} onOpen={openTask} taskLocks={taskLocks} currentUserId={presenceUser?.userId ?? null} />}
                 {view === "list" && (
                   <List
                     tasks={filteredTasks}
@@ -307,11 +319,13 @@ function Shell() {
 
 export function AppShell() {
   return (
-    <PrefsProvider>
-      <StoreProvider>
-        <Shell />
-        <AtlasToaster />
-      </StoreProvider>
-    </PrefsProvider>
+    <AuthProvider>
+      <PrefsProvider>
+        <StoreProvider>
+          <Shell />
+          <AtlasToaster />
+        </StoreProvider>
+      </PrefsProvider>
+    </AuthProvider>
   );
 }

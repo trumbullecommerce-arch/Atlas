@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useStore, type NewTaskInput } from "@/lib/store";
 import { ME, PEOPLE, PROJECTS, STATUSES, person } from "@/lib/seed";
+import { useAuth } from "@/lib/auth-context";
 import { MARKETPLACE_META, PRIORITY_META } from "@/lib/format";
 import type { Marketplace, Priority } from "@/lib/types";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -96,7 +97,9 @@ function Inner({ onClose, onCreated }: { onClose: () => void; onCreated: (id: st
   const [projectId, setProjectId] = useState(PROJECTS[0]?.id ?? "");
   const [statusKey, setStatusKey] = useState("todo");
   const [priority, setPriority] = useState<Priority>(3);
-  const [ownerId, setOwnerId] = useState(ME);
+  const { currentUser: authUser } = useAuth();
+  const meId = authUser?.id ?? ME;
+  const [ownerId, setOwnerId] = useState(meId);
   const [dueDate, setDueDate] = useState("");
   const [marketplace, setMarketplace] = useState<Marketplace | "">("");
   const [sku, setSku] = useState("");

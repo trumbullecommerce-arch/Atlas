@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useStore } from "@/lib/store";
 import { ME, person, project, STATUSES, PEOPLE } from "@/lib/seed";
+import { useAuth } from "@/lib/auth-context";
 import { formatDate, relTime, PRIORITY_META } from "@/lib/format";
 import type { ActivityKind, Task, Marketplace, Priority } from "@/lib/types";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -56,9 +57,11 @@ function MetaRow({ icon, label, children }: { icon: IconName; label: string; chi
 
 function CommentComposer({ onSubmit }: { onSubmit: (body: string) => void }) {
   const [val, setVal] = useState("");
+  const { currentUser: authUser } = useAuth();
+  const meId = authUser?.id ?? ME;
   return (
     <div className={s.composerWrap}>
-      <Avatar personId={ME} size={28} />
+      <Avatar personId={meId} size={28} />
       <div className={s.composerInner}>
         <textarea
           value={val}

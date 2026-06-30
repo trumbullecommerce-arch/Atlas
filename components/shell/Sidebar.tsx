@@ -11,6 +11,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { PROJECTS, person, ME } from "@/lib/seed";
+import { useAuth } from "@/lib/auth-context";
 import { useStore } from "@/lib/store";
 import type { ViewKey } from "@/lib/types";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -108,7 +109,8 @@ export function SidebarContent({
   onLogout?: () => void;
 }) {
   const { tasks } = useStore();
-  const me = person(ME);
+  const { currentUser: authUser } = useAuth();
+  const me = authUser ?? person(ME);
 
   function projectTaskCount(id: string) {
     return tasks.filter((t) => t.projectId === id && t.statusKey !== "done").length;
@@ -217,7 +219,7 @@ export function SidebarContent({
           </button>
         )}
         <div className={styles.userCard}>
-          <Avatar personId={ME} size={32} ring />
+          <Avatar personId={me?.id ?? ME} size={32} ring />
           <div className={styles.userInfo}>
             <div className={styles.userName}>{me?.fullName}</div>
             <div className={styles.userRole}>{me?.role}</div>
@@ -249,6 +251,8 @@ function IconRail({
   onExpandRail: () => void;
   onOpenSettings: () => void;
 }) {
+  const { currentUser: authUser } = useAuth();
+  const me = authUser ?? person(ME);
   return (
     <aside className={`atlas-icon-rail ${styles.iconRail}`}>
       {/* Logo mark — click to expand flyout */}
@@ -303,7 +307,7 @@ function IconRail({
           <Icon name="settings" size={20} className={styles.railIcon} />
         </button>
         <div className={styles.railAvatar}>
-          <Avatar personId={ME} size={30} ring />
+          <Avatar personId={me?.id ?? ME} size={30} ring />
         </div>
       </div>
     </aside>
