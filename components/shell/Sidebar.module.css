@@ -490,6 +490,19 @@
   width: 100%;
 }
 
+.railLogoutBtn {
+  margin-bottom: var(--space-1);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-soft) !important;
+  border-radius: 0 !important;
+  width: calc(100% - 16px);
+}
+
+.railLogoutBtn:hover {
+  color: var(--error) !important;
+  background: color-mix(in srgb, var(--error) 10%, transparent) !important;
+}
+
 .railAvatar {
   display: grid;
   place-items: center;
@@ -508,10 +521,10 @@
 
 .railFlyout {
   position: fixed;
-  left: 56px;
+  left: 0;
   top: 0;
   bottom: 0;
-  width: 260px;
+  width: 300px;
   z-index: 59;
   border-right: 1px solid var(--border);
   background: var(--surface);

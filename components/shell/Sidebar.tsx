@@ -245,11 +245,13 @@ function IconRail({
   setView,
   onExpandRail,
   onOpenSettings,
+  onLogout,
 }: {
   view: ViewKey;
   setView: (v: ViewKey) => void;
   onExpandRail: () => void;
   onOpenSettings: () => void;
+  onLogout?: () => void;
 }) {
   const { currentUser: authUser } = useAuth();
   const me = authUser ?? person(ME);
@@ -295,8 +297,19 @@ function IconRail({
         })}
       </nav>
 
-      {/* Bottom: settings + avatar */}
+      {/* Bottom: logout + settings + avatar */}
       <div className={styles.railBottom}>
+        {onLogout && (
+          <button
+            type="button"
+            className={`${styles.railBtn} ${styles.railLogoutBtn}`}
+            onClick={onLogout}
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <Icon name="logout" size={18} className={styles.railIcon} />
+          </button>
+        )}
         <button
           type="button"
           className={styles.railBtn}
@@ -359,6 +372,7 @@ export function Sidebar(props: {
           props.onOpenSettings();
           setRailExpanded(false);
         }}
+        onLogout={props.onLogout}
       />
 
       {/* ── Icon Rail flyout overlay ───────────────────────────────────── */}
@@ -373,9 +387,9 @@ export function Sidebar(props: {
               className={`atlas-rail-flyout-backdrop ${styles.railFlyoutBackdrop}`}
             />
             <motion.aside
-              initial={{ x: -260 }}
+              initial={{ x: -310 }}
               animate={{ x: 0 }}
-              exit={{ x: -260 }}
+              exit={{ x: -310 }}
               transition={{ type: "spring", stiffness: 380, damping: 36 }}
               className={`atlas-rail-flyout ${styles.railFlyout}`}
             >
