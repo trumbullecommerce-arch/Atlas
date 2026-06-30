@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { person } from "@/lib/seed";
 import { dueLabel, dueState } from "@/lib/format";
 import type { Task } from "@/lib/types";
+import type { TaskLock } from "@/lib/supabase/task-locks";
 import { Icon } from "@/components/ui/Icon";
 import { AvatarStack, Chip, MarketplacePill, PriorityFlag } from "@/components/ui/Primitives";
 import styles from "./TaskCard.module.css";
@@ -20,10 +21,13 @@ export function TaskCard({
   task,
   onOpen,
   dragging = false,
+  lock,
 }: {
   task: Task;
   onOpen?: () => void;
   dragging?: boolean;
+  /** If another user is editing this task, show their glow + avatar bubble */
+  lock?: TaskLock | null;
 }) {
   const blocked = task.isBlocked;
   const isDone = task.statusKey === "done";
@@ -39,14 +43,19 @@ export function TaskCard({
     styles.card,
     blocked ? `atlas-task-card is-blocked ${styles.blocked}` : "atlas-task-card",
     dragging ? styles.dragging : "",
+    lock ? styles.locked : "",
   ]
     .filter(Boolean)
     .join(" ");
+
+  // CSS custom property for the lock hue (drives the glow color)
+  const lockStyle = lock ? { "--lock-hue": String(lock.hue) } as React.CSSProperties : undefined;
 
   return (
     <motion.div
       onClick={onOpen}
       className={cardClass}
+      style={lockStyle}
       // While dragging (rendered in the DragOverlay), lift + tilt the card with a
       // snappy spring. When resting, a subtle hover-raise + tap-press.
       animate={
@@ -58,6 +67,15 @@ export function TaskCard({
       whileTap={dragging ? undefined : { scale: 0.98 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
     >
+      {/* Lock indicator — another user is editing this task */}
+      {lock && (
+        <>
+          <span className={styles.lockBubble} title={`${lock.fullName} is editing`}>
+            {lock.initials}
+          </span>
+          <span className={styles.lockLabel}>editing…</span>
+        </>
+      )}
       {/* Top: marketplace + priority */}
       <div className={styles.header}>
         <MarketplacePill marketplace={task.marketplace} compact />

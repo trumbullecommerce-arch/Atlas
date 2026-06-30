@@ -480,6 +480,7 @@ function AtRiskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
           boxShadow: `0 0 7px ${task.isBlocked || overdue ? "var(--error)" : "var(--warning)"}`,
         }}
       />
+      {/* Task name + project — takes remaining space */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {task.title}
@@ -491,17 +492,24 @@ function AtRiskRow({ task, onOpen }: { task: Task; onOpen: () => void }) {
           </span>
         </div>
       </div>
-      <PriorityFlag priority={task.priority} />
-      {task.isBlocked ? (
-        <Chip color="var(--error)">
-          <Icon name="block" size={11} /> Blocked
-        </Chip>
-      ) : (
-        <Chip color={overdue ? "var(--error)" : "var(--warning)"}>
-          <Icon name="clock" size={11} /> {dueLabel(task.dueDate)}
-        </Chip>
-      )}
-      <MarketplacePill marketplace={task.marketplace} compact />
+      {/* Fixed-width columns for alignment */}
+      <div style={{ width: 90, flex: "0 0 90px", display: "flex", justifyContent: "flex-end" }}>
+        <MarketplacePill marketplace={task.marketplace} compact />
+      </div>
+      <div style={{ width: 90, flex: "0 0 90px", display: "flex", justifyContent: "flex-end" }}>
+        {task.isBlocked ? (
+          <Chip color="var(--error)">
+            <Icon name="block" size={11} /> Blocked
+          </Chip>
+        ) : (
+          <Chip color={overdue ? "var(--error)" : "var(--warning)"}>
+            <Icon name="clock" size={11} /> {dueLabel(task.dueDate)}
+          </Chip>
+        )}
+      </div>
+      <div style={{ width: 42, flex: "0 0 42px", display: "flex", justifyContent: "flex-end" }}>
+        <PriorityFlag priority={task.priority} />
+      </div>
     </button>
   );
 }

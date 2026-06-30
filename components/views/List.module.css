@@ -184,6 +184,35 @@
   border-left-color: var(--error);
 }
 
+.rowLocked {
+  border-left-color: hsl(var(--lock-hue, 212) 70% 55%);
+  background: hsl(var(--lock-hue, 212) 60% 50% / 0.04);
+  animation: listLockPulse 2s ease-in-out infinite;
+}
+
+@keyframes listLockPulse {
+  0%, 100% {
+    border-left-color: hsl(var(--lock-hue, 212) 70% 55% / 0.6);
+  }
+  50% {
+    border-left-color: hsl(var(--lock-hue, 212) 70% 55%);
+  }
+}
+
+.lockIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: hsl(var(--lock-hue, 212) 80% 70%);
+  background: hsl(var(--lock-hue, 212) 40% 15% / 0.8);
+  border: 1px solid hsl(var(--lock-hue, 212) 50% 30% / 0.4);
+  white-space: nowrap;
+}
+
 /* ── Row cells ─────────────────────────────────────────────────────────── */
 
 .priorityCell {

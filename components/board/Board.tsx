@@ -18,6 +18,7 @@ import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useStore } from "@/lib/store";
 import { PEOPLE, person } from "@/lib/seed";
 import type { Marketplace, Task } from "@/lib/types";
+import type { TaskLock } from "@/lib/supabase/task-locks";
 import { Icon } from "@/components/ui/Icon";
 import { Avatar } from "@/components/ui/Primitives";
 import { TaskCard } from "./TaskCard";
@@ -46,7 +47,7 @@ function clamp(val: number, min: number, max: number) {
   return Math.max(min, Math.min(max, val));
 }
 
-function DraggableCard({ task, onOpen, staggerIndex }: { task: Task; onOpen: () => void; staggerIndex: number }) {
+function DraggableCard({ task, onOpen, staggerIndex, lock }: { task: Task; onOpen: () => void; staggerIndex: number; lock?: TaskLock | null }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id });
   return (
     <motion.div
@@ -65,7 +66,7 @@ function DraggableCard({ task, onOpen, staggerIndex }: { task: Task; onOpen: () 
       {...listeners}
       className={`${styles.draggableWrap} ${isDragging ? styles.draggableHidden : ""}`}
     >
-      <TaskCard task={task} onOpen={onOpen} />
+      <TaskCard task={task} onOpen={onOpen} lock={lock} />
     </motion.div>
   );
 }
@@ -74,10 +75,14 @@ function Column({
   col,
   tasks,
   onOpen,
+  taskLocks,
+  currentUserId,
 }: {
   col: ColumnDef;
   tasks: Task[];
   onOpen: (id: string) => void;
+  taskLocks?: Map<string, TaskLock>;
+  currentUserId?: string | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.key });
   const isBlockedCol = col.key === "blocked";
@@ -104,7 +109,12 @@ function Column({
         <LayoutGroup>
           <AnimatePresence mode="popLayout">
             {tasks.length ? (
-              tasks.map((t, i) => <DraggableCard key={t.id} task={t} onOpen={() => onOpen(t.id)} staggerIndex={i} />)
+              tasks.map((t, i) => {
+                // Only show lock if locked by ANOTHER user (not yourself)
+                const rawLock = taskLocks?.get(t.id);
+                const lock = rawLock && rawLock.userId !== currentUserId ? rawLock : null;
+                return <DraggableCard key={t.id} task={t} onOpen={() => onOpen(t.id)} staggerIndex={i} lock={lock} />;
+              })
             ) : (
               <motion.div
                 key="empty"
@@ -127,14 +137,18 @@ function Column({
 function BoardGrid({
   tasks,
   onOpen,
+  taskLocks,
+  currentUserId,
 }: {
   tasks: Task[];
   onOpen: (id: string) => void;
+  taskLocks?: Map<string, TaskLock>;
+  currentUserId?: string | null;
 }) {
   return (
     <div className={styles.grid}>
       {COLUMNS.map((col) => (
-        <Column key={col.key} col={col} tasks={tasks.filter((t) => columnOf(t) === col.key)} onOpen={onOpen} />
+        <Column key={col.key} col={col} tasks={tasks.filter((t) => columnOf(t) === col.key)} onOpen={onOpen} taskLocks={taskLocks} currentUserId={currentUserId} />
       ))}
     </div>
   );
@@ -143,9 +157,13 @@ function BoardGrid({
 export function Board({
   tasks,
   onOpen,
+  taskLocks,
+  currentUserId,
 }: {
   tasks: Task[];
   onOpen: (id: string) => void;
+  taskLocks?: Map<string, TaskLock>;
+  currentUserId?: string | null;
 }) {
   const { moveTask, setBlocked } = useStore();
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
@@ -288,12 +306,12 @@ export function Board({
                   <span className={`mono ${styles.laneCount}`}>{lane.tasks.length}</span>
                   <div className={styles.laneDivider} />
                 </div>
-                <BoardGrid tasks={lane.tasks} onOpen={onOpen} />
+                <BoardGrid tasks={lane.tasks} onOpen={onOpen} taskLocks={taskLocks} currentUserId={currentUserId} />
               </div>
             ))}
           </div>
         ) : (
-          <BoardGrid tasks={tasks} onOpen={onOpen} />
+          <BoardGrid tasks={tasks} onOpen={onOpen} taskLocks={taskLocks} currentUserId={currentUserId} />
         )}
       </div>
 

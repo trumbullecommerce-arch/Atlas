@@ -19,15 +19,36 @@ import type {
 export const TODAY = "2026-06-27";
 
 // ── People ───────────────────────────────────────────────────────────────────
+// Real Trumbull team members from Users.xlsx.
+// Email format: firstinitiallastname@trumbull.com
+// The first 6 entries also carry the old demo IDs ("u_jl" etc.) so existing
+// task references (ownerId, assigneeIds, comments, activity) keep working.
 export const PEOPLE: Person[] = [
-  { id: "u_jl", initials: "JL", fullName: "Jordan Lee", email: "jordan.lee@trumbull.com", role: "admin", hue: 212 },
-  { id: "u_dt", initials: "DT", fullName: "Dana Torres", email: "dana.torres@trumbull.com", role: "member", hue: 158 },
-  { id: "u_sk", initials: "SK", fullName: "Sam Kim", email: "sam.kim@trumbull.com", role: "member", hue: 268 },
-  { id: "u_mr", initials: "MR", fullName: "Morgan Reyes", email: "morgan.reyes@trumbull.com", role: "member", hue: 24 },
-  { id: "u_ap", initials: "AP", fullName: "Avery Patel", email: "avery.patel@trumbull.com", role: "member", hue: 330 },
-  { id: "u_cb", initials: "CB", fullName: "Casey Brooks", email: "casey.brooks@trumbull.com", role: "member", hue: 188 },
+  // ── Original 6 (mapped from demo personas to real people) ────────────────
+  { id: "u_jl", initials: "MN", fullName: "Michael Nichols", email: "mnichols@trumbull.com", role: "admin", hue: 162 },
+  { id: "u_dt", initials: "SS", fullName: "Stephanie Schermer", email: "sschermer@trumbull.com", role: "member", hue: 36 },
+  { id: "u_sk", initials: "SA", fullName: "Shawn Allen", email: "sallen@trumbull.com", role: "member", hue: 54 },
+  { id: "u_mr", initials: "SW", fullName: "Shawn Walker", email: "swalker@trumbull.com", role: "member", hue: 72 },
+  { id: "u_ap", initials: "CS", fullName: "Colin Snelson", email: "csnelson@trumbull.com", role: "member", hue: 90 },
+  { id: "u_cb", initials: "CT", fullName: "Colin Temnick", email: "ctemnick@trumbull.com", role: "member", hue: 108 },
+  // ── Remaining Trumbull team ──────────────────────────────────────────────
+  { id: "u_jv", initials: "JV", fullName: "Joe Vingle", email: "jvingle@trumbull.com", role: "member", hue: 0 },
+  { id: "u_aw", initials: "AW", fullName: "Alison Walton", email: "awalton@trumbull.com", role: "member", hue: 126 },
+  { id: "u_eh", initials: "EH", fullName: "Emily Huston", email: "ehuston@trumbull.com", role: "member", hue: 144 },
+  { id: "u_cn", initials: "CN", fullName: "Colette Nichols", email: "cnichols@trumbull.com", role: "member", hue: 180 },
+  { id: "u_as", initials: "AS", fullName: "Abhi Shah", email: "ashah@trumbull.com", role: "member", hue: 198 },
+  { id: "u_sm", initials: "SM", fullName: "Sabin Maharjan", email: "smaharjan@trumbull.com", role: "member", hue: 216 },
+  { id: "u_yt", initials: "YT", fullName: "Yi-Ting Tsan", email: "ytsan@trumbull.com", role: "member", hue: 234 },
+  { id: "u_dm", initials: "DM", fullName: "Derek Menzies", email: "dmenzies@trumbull.com", role: "member", hue: 252 },
+  { id: "u_av", initials: "AV", fullName: "Alex Velicer", email: "avelicer@trumbull.com", role: "member", hue: 270 },
+  { id: "u_ml", initials: "ML", fullName: "Michelle Lawson", email: "mlawson@trumbull.com", role: "member", hue: 288 },
+  { id: "u_mp", initials: "MP", fullName: "Michelle Purcell", email: "mpurcell@trumbull.com", role: "member", hue: 306 },
+  { id: "u_rs", initials: "RS", fullName: "Rita Stringham", email: "rstringham@trumbull.com", role: "member", hue: 324 },
+  { id: "u_jla", initials: "JL", fullName: "Jennifer Laws", email: "jlaws@trumbull.com", role: "member", hue: 342 },
+  { id: "u_at", initials: "AT", fullName: "Andrew Toms", email: "atoms@trumbull.com", role: "member", hue: 18 },
 ];
 
+// Default logged-in user (Michael Nichols) — will be replaced by Supabase auth
 export const ME = "u_jl";
 
 export function person(id: string | null | undefined): Person | undefined {

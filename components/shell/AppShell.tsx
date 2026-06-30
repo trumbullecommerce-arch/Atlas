@@ -33,6 +33,9 @@ import { List } from "@/components/views/List";
 import { Audits } from "@/components/views/Audits";
 import { Calendar } from "@/components/views/Calendar";
 import { Timeline } from "@/components/views/Timeline";
+import { usePresence, type PresenceUser } from "@/lib/supabase/presence";
+import { useTaskLocks } from "@/lib/supabase/task-locks";
+import { person as seedPerson } from "@/lib/seed";
 
 function Fx() {
   return (
@@ -92,6 +95,26 @@ function Shell() {
   // status key so the List can expand + scroll that group into view (see List C).
   const [listFocus, setListFocus] = useState<string | null>(null);
 
+  // ── Presence & Task Locks ───────────────────────────────────────────────
+  // Build the current user's presence info from seed data.
+  // Once real auth is wired, this will come from the Supabase session.
+  const currentUser = useMemo<PresenceUser | null>(() => {
+    const me = seedPerson(ME);
+    if (!me) return null;
+    return {
+      userId: me.id,
+      initials: me.initials,
+      fullName: me.fullName,
+      hue: me.hue,
+      joinedAt: new Date().toISOString(),
+    };
+  }, []);
+
+  const onlineUsers = usePresence(currentUser);
+  const { locks: taskLocks, lockTask, unlockTask } = useTaskLocks(
+    currentUser ? { userId: currentUser.userId, initials: currentUser.initials, fullName: currentUser.fullName, hue: currentUser.hue } : null,
+  );
+
   // Keyboard shortcuts
   useShortcuts({
     onNavigate: (v) => { navigateView(v); setMobileNavOpen(false); },
@@ -147,6 +170,12 @@ function Shell() {
 
   function openTask(id: string) {
     setSelectedTaskId(id);
+    lockTask(id);
+  }
+
+  function closeTask() {
+    setSelectedTaskId(null);
+    unlockTask();
   }
 
   return (
@@ -187,6 +216,7 @@ function Shell() {
             onNewTask={() => setNewTaskOpen(true)}
             onOpenMobileNav={() => setMobileNavOpen(true)}
             projectName={activeProjectName}
+            onlineUsers={onlineUsers}
           />
 
           {/* Scrolling content region */}
@@ -214,7 +244,7 @@ function Shell() {
                     }}
                   />
                 )}
-                {view === "board" && <Board tasks={filteredTasks} onOpen={openTask} />}
+                {view === "board" && <Board tasks={filteredTasks} onOpen={openTask} taskLocks={taskLocks} currentUserId={currentUser?.userId ?? null} />}
                 {view === "list" && (
                   <List
                     tasks={filteredTasks}
@@ -232,7 +262,7 @@ function Shell() {
         </div>
       </div>
 
-      <TaskDetail taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
+      <TaskDetail taskId={selectedTaskId} onClose={closeTask} />
 
       <NewTaskDrawer
         open={newTaskOpen}

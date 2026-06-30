@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PEOPLE } from "@/lib/seed";
+import type { PresenceUser } from "@/lib/supabase/presence";
 import { MARKETPLACE_META } from "@/lib/format";
 import type { Marketplace, ScopeFilter, ViewKey } from "@/lib/types";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -296,6 +297,7 @@ export function Topbar({
   onNewTask,
   onOpenMobileNav,
   projectName,
+  onlineUsers,
 }: {
   view: ViewKey;
   search: string;
@@ -307,6 +309,8 @@ export function Topbar({
   onNewTask: () => void;
   onOpenMobileNav: () => void;
   projectName: string | null;
+  /** Online users from Supabase Presence. Falls back to seed data if empty. */
+  onlineUsers?: PresenceUser[];
 }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const meta = VIEW_TITLES[view];
@@ -438,19 +442,24 @@ export function Topbar({
           <>
             <div onClick={() => setNotifOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
             <div
-              className="glass"
               style={{
                 position: "absolute",
                 right: 0,
                 top: 46,
-                width: 300,
+                width: 320,
                 borderRadius: 14,
-                padding: 12,
+                padding: "14px 14px 10px",
                 zIndex: 50,
-                boxShadow: "var(--shadow-3)",
+                background: "var(--surface-3)",
+                backdropFilter: "blur(24px)",
+                WebkitBackdropFilter: "blur(24px)",
+                border: "1px solid var(--border)",
+                borderTopColor: "rgba(255, 255, 255, 0.08)",
+                borderLeftColor: "rgba(255, 255, 255, 0.08)",
+                boxShadow: "0 20px 60px -12px rgba(0, 0, 0, 0.6), 0 4px 16px -4px rgba(0, 0, 0, 0.3)",
               }}
             >
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
                 Notifications
               </div>
               {[
@@ -458,11 +467,11 @@ export function Topbar({
                 { c: "var(--warning)", t: "7 SKUs fall below cost in pricing model", w: "5h ago" },
                 { c: "var(--secondary)", t: "Avery commented on Walmart listings", w: "yesterday" },
               ].map((n, i) => (
-                <div key={i} style={{ display: "flex", gap: 9, padding: "8px 6px", borderRadius: 8 }}>
+                <div key={i} style={{ display: "flex", gap: 10, padding: "9px 6px", borderRadius: 8, transition: "background var(--dur)" }}>
                   <span style={{ width: 7, height: 7, borderRadius: "50%", background: n.c, marginTop: 5, flex: "0 0 auto", boxShadow: `0 0 6px ${n.c}` }} />
                   <div>
-                    <div style={{ fontSize: 12.5, color: "var(--text-soft)", lineHeight: 1.35 }}>{n.t}</div>
-                    <div style={{ fontSize: 10.5, color: "var(--muted-2)", marginTop: 2 }}>{n.w}</div>
+                    <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.4, fontWeight: 500 }}>{n.t}</div>
+                    <div style={{ fontSize: 10.5, color: "var(--muted)", marginTop: 3 }}>{n.w}</div>
                   </div>
                 </div>
               ))}
@@ -471,13 +480,72 @@ export function Topbar({
         )}
       </div>
 
-      {/* Team avatars */}
+      {/* Team avatars — show online users (or fallback to seed data) */}
       <div className="atlas-team" style={{ display: "flex", alignItems: "center" }}>
-        {PEOPLE.slice(0, 4).map((p, i) => (
-          <span key={p.id} style={{ marginLeft: i === 0 ? 0 : -8, borderRadius: "50%", boxShadow: "0 0 0 2px var(--floor)" }}>
-            <Avatar personId={p.id} size={30} />
-          </span>
-        ))}
+        {(() => {
+          // Use online users if available, otherwise fall back to seed people
+          const MAX_VISIBLE = 5;
+          if (onlineUsers && onlineUsers.length > 0) {
+            const visible = onlineUsers.slice(0, MAX_VISIBLE);
+            const overflow = onlineUsers.length - MAX_VISIBLE;
+            return (
+              <>
+                {visible.map((u, i) => (
+                  <span
+                    key={u.userId}
+                    title={`${u.fullName} (online)`}
+                    style={{
+                      marginLeft: i === 0 ? 0 : -8,
+                      borderRadius: "50%",
+                      boxShadow: "0 0 0 2px var(--floor)",
+                      position: "relative",
+                    }}
+                  >
+                    <Avatar personId={u.userId} size={30} />
+                    {/* Green online dot */}
+                    <span style={{
+                      position: "absolute",
+                      bottom: 0,
+                      right: 0,
+                      width: 9,
+                      height: 9,
+                      borderRadius: "50%",
+                      background: "#4edea3",
+                      border: "2px solid var(--floor)",
+                      boxShadow: "0 0 6px rgba(78, 222, 163, 0.6)",
+                    }} />
+                  </span>
+                ))}
+                {overflow > 0 && (
+                  <span
+                    title={`${overflow} more online`}
+                    style={{
+                      marginLeft: -8,
+                      width: 30,
+                      height: 30,
+                      borderRadius: "50%",
+                      background: "var(--surface-high)",
+                      border: "2px solid var(--floor)",
+                      display: "grid",
+                      placeItems: "center",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: "var(--muted)",
+                    }}
+                  >
+                    +{overflow}
+                  </span>
+                )}
+              </>
+            );
+          }
+          // Fallback: show seed people
+          return PEOPLE.slice(0, 4).map((p, i) => (
+            <span key={p.id} style={{ marginLeft: i === 0 ? 0 : -8, borderRadius: "50%", boxShadow: "0 0 0 2px var(--floor)" }}>
+              <Avatar personId={p.id} size={30} />
+            </span>
+          ));
+        })()}
       </div>
 
       {/* New task */}
