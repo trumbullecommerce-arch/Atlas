@@ -7,6 +7,12 @@ import { NextResponse, type NextRequest } from "next/server";
  * unauthenticated users to /login. The /login route itself is public.
  */
 export async function middleware(request: NextRequest) {
+  // If Supabase isn't configured, skip auth entirely (prevents crash on Vercel
+  // before env vars are set).
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
