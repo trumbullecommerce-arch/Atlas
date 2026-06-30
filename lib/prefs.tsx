@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 
 export type SidebarMode = "fixed" | "collapsible" | "icon-rail";
 export type ThemeMode = "dark" | "light";
+export type DefaultView = "dashboard" | "board" | "list";
 
 export interface Prefs {
   /**
@@ -27,11 +28,14 @@ export interface Prefs {
   sidebarMode: SidebarMode;
   /** Appearance: dark or light mode */
   theme: ThemeMode;
+  /** Which view to open on login: dashboard, board, or list */
+  defaultView: DefaultView;
 }
 
 export const DEFAULT_PREFS: Prefs = {
   sidebarMode: "fixed",
   theme: "dark",
+  defaultView: "dashboard",
 };
 
 interface PrefsValue {

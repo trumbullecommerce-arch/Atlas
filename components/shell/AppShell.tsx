@@ -68,7 +68,7 @@ function Shell() {
   const { tasks } = useStore();
   const { prefs, setPref } = usePrefs();
 
-  const [view, setViewRaw] = useState<ViewKey>("dashboard");
+  const [view, setViewRaw] = useState<ViewKey>(prefs.defaultView ?? "dashboard");
 
   // Navigate with the native View Transitions API for GPU-composited cross-fades.
   // Falls back to instant state update if the browser doesn't support it.

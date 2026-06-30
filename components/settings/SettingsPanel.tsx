@@ -8,7 +8,7 @@
 
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { usePrefs, type SidebarMode, type ThemeMode } from "@/lib/prefs";
+import { usePrefs, type SidebarMode, type ThemeMode, type DefaultView } from "@/lib/prefs";
 import { Icon, type IconName } from "@/components/ui/Icon";
 
 type Mode = ThemeMode;
@@ -222,6 +222,39 @@ function Inner({ onClose }: { onClose: () => void }) {
               icon="target"
               title="Light"
               description="A brighter, high-contrast surface."
+            />
+          </div>
+        </Section>
+
+        <div style={{ height: 1, background: "var(--border-soft)" }} />
+
+        {/* Default landing page */}
+        <Section
+          icon="dashboard"
+          title="Default landing page"
+          description="Choose which view opens when you log in."
+        >
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <OptionCard
+              active={prefs.defaultView === "dashboard"}
+              onClick={() => setPref("defaultView", "dashboard")}
+              icon="grid"
+              title="Dashboard"
+              description="Start with the cross-project health overview."
+            />
+            <OptionCard
+              active={prefs.defaultView === "board"}
+              onClick={() => setPref("defaultView", "board")}
+              icon="board"
+              title="Board"
+              description="Jump straight into the Kanban workflow."
+            />
+            <OptionCard
+              active={prefs.defaultView === "list"}
+              onClick={() => setPref("defaultView", "list")}
+              icon="list"
+              title="List"
+              description="Open the dense, sortable task list."
             />
           </div>
         </Section>
