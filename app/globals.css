@@ -16,7 +16,7 @@
   --surface-high: #222a3d;
   --surface-highest: #2d3449;
   --glass: rgba(30, 41, 59, 0.6);
-  --glass-2: rgba(18, 28, 52, 0.86);
+  --glass-2: rgba(18, 28, 52, 0.97);
 
   /* Borders / outlines — razor thin */
   --border: rgba(51, 65, 85, 0.7);
@@ -372,7 +372,7 @@ html[data-mode="light"] {
   --surface-high: #eef2fa;
   --surface-highest: #e6ebf5;
   --glass: rgba(255, 255, 255, 0.72);
-  --glass-2: rgba(255, 255, 255, 0.86);
+  --glass-2: rgba(255, 255, 255, 0.97);
   --border: rgba(15, 23, 42, 0.12);
   --border-soft: rgba(15, 23, 42, 0.07);
   --border-strong: rgba(47, 109, 240, 0.5);
